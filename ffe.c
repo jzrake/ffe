@@ -67,13 +67,6 @@ void ffe_sim_init(struct ffe_sim *sim)
   sim->grid_spacing[2] = 1.0 / sim->Nj;
   sim->grid_spacing[3] = 1.0 / sim->Nk;
 
-  sim->status.iteration = 0;
-  sim->status.checkpoint_number = 0;
-  sim->status.time_simulation = 0.0;
-  sim->status.time_step = 0.0;
-  sim->status.time_last_checkpoint = -sim->time_between_checkpoints;
-  sim->status.kzps = 0.0;
-
 
 
   cow_domain_setndim(sim->domain, (sim->Ni>1) + (sim->Nj>1) + (sim->Nk>1));
@@ -584,13 +577,13 @@ void ffe_sim_write_checkpoint(struct ffe_sim *sim)
 	   sim->output_directory,
 	   sim->status.checkpoint_number);
 
-  cow_dfield_write(sim->magnetic[0], chkpt_name);
   cow_dfield_write(sim->electric[0], chkpt_name);
+  cow_dfield_write(sim->magnetic[0], chkpt_name);
+  cow_dfield_write(sim->psifield[0], chkpt_name);
 
 
   if (cow_domain_getcartrank(sim->domain) == 0) {
     read_write_status(sim, chkpt_name, 'w');
-    read_write_status(sim, chkpt_name, 'r');
     read_write_sim(sim, chkpt_name, 'w');
   }
 }
@@ -602,6 +595,8 @@ int main(int argc, char **argv)
   cow_init(0, NULL, 0);
 
 
+  int invalid_cfg = 0;
+  int restarted_run = 0;
   char logfile_name[1024];
   char anlfile_name[1024];
   struct ffe_sim sim;
@@ -648,11 +643,33 @@ int main(int argc, char **argv)
    * Set up the problem defaults
    * ===================================================================
    */
+  if (strstr(argv[1], ".h5") != 0) {
+   
+    invalid_cfg += read_write_sim(&sim, argv[1], 'r');
+    invalid_cfg += read_write_status(&sim, argv[1], 'r');
+
+    if (invalid_cfg == 0) {
+      restarted_run = 1;
+    }
+  }
+  else {
+
+    /* set up a fresh status struct */
+    sim.status.iteration = 0;
+    sim.status.checkpoint_number = 0;
+    sim.status.time_simulation = 0.0;
+    sim.status.time_step = 0.0;
+    sim.status.time_last_checkpoint = 0;
+    sim.status.kzps = 0.0;
+
+  }
+
+
   if (ffe_sim_problem_setup(&sim, sim.problem_name)) {
     printf("[ffe] error: unkown problem name: '%s', choose one of\n",
 	   sim.problem_name);
     ffe_sim_problem_setup(NULL, NULL);
-    return 1;
+    invalid_cfg = 1;
   }
 
 
@@ -708,8 +725,18 @@ int main(int argc, char **argv)
 
 
   ffe_sim_init(&sim);
-  ffe_sim_initial_data(&sim);
 
+  if (restarted_run) {
+    cow_dfield_read(sim.electric[0], argv[1]);
+    cow_dfield_read(sim.magnetic[0], argv[1]);
+    cow_dfield_read(sim.psifield[0], argv[1]);
+
+  }
+  else {
+    sim.status.time_last_checkpoint = -sim.time_between_checkpoints;
+    sim.status.checkpoint_number = -1;
+    ffe_sim_initial_data(&sim);
+  }
 
   printf("\n-----------------------------------------\n");
   printf("problem_name ............... %s\n", sim.problem_name);
@@ -725,7 +752,6 @@ int main(int argc, char **argv)
   printf("-----------------------------------------\n\n");
 
 
-  int invalid_output = 0;
   int local_grid_size = cow_domain_getnumlocalzonesinterior(sim.domain,
 							    COW_ALL_DIMS);
 
@@ -741,19 +767,18 @@ int main(int argc, char **argv)
     
     if (logf == NULL) {
       printf("[ffe] error: could not open log file '%s'\n", logfile_name);
-      invalid_output = 1;
+      invalid_cfg += 1;
     }
     else {
       fclose(logf);
-      invalid_output = 0;
     }
   }
 
 
   /* Propagate any errors to all procs */
-  invalid_output = cow_domain_intsum(sim.domain, invalid_output);  
+  invalid_cfg += cow_domain_intsum(sim.domain, invalid_cfg);  
 
-  if (invalid_output) {
+  if (invalid_cfg) {
     sim.time_final = 0.0;
   }
 
@@ -768,10 +793,10 @@ int main(int argc, char **argv)
     if (sim.status.time_simulation - sim.status.time_last_checkpoint >=
 	sim.time_between_checkpoints) {
 
-      ffe_sim_write_checkpoint(&sim);
-
       sim.status.time_last_checkpoint += sim.time_between_checkpoints;
       sim.status.checkpoint_number += 1;
+
+      ffe_sim_write_checkpoint(&sim);
     }
 
 
@@ -824,7 +849,8 @@ int main(int argc, char **argv)
 
 
 
-  if (invalid_output == 0) {
+  if (invalid_cfg == 0) {
+    sim.status.checkpoint_number += 1;
     ffe_sim_write_checkpoint(&sim);
   }
 

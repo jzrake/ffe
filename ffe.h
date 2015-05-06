@@ -97,8 +97,8 @@ void initial_data_beltrami  (struct ffe_sim *sim, double x[4], double E[4], doub
  * Serialization library
  * =====================================================================
  */
-void read_write_status(struct ffe_sim *sim, const char *chkpt_name, char mode);
-void read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode);
+int read_write_status(struct ffe_sim *sim, const char *chkpt_name, char mode);
+int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode);
 
 
 #define FFE_NG 3 /* number of guard zones */

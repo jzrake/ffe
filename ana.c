@@ -1,3 +1,5 @@
+#include <stdio.h>
+#include <math.h>
 #include "ffe.h"
 
 
@@ -8,20 +10,6 @@
  */
 void ffe_sim_measure(struct ffe_sim *sim, struct ffe_measure *meas)
 {
-#if (FFE_DIFFERENCE_ORDER == 2)
-
-#define D1(F,c)  (Ni==1 ? 0.0 : DIFF1C2(F+m+c,si)/dx)
-#define D2(F,c)  (Nj==1 ? 0.0 : DIFF1C2(F+m+c,sj)/dy)
-#define D3(F,c)  (Nk==1 ? 0.0 : DIFF1C2(F+m+c,sk)/dz)
-
-#elif (FFE_DIFFERENCE_ORDER == 4)
-
-#define D1(F,c)  (Ni==1 ? 0.0 : DIFF1C4(F+m+c,si)/dx)
-#define D2(F,c)  (Nj==1 ? 0.0 : DIFF1C4(F+m+c,sj)/dy)
-#define D3(F,c)  (Nk==1 ? 0.0 : DIFF1C4(F+m+c,sk)/dz)
-
-#endif
-
 #define GLB_AVG(x) x = cow_domain_dblsum(sim->domain, x) / Nt
 
   int Ni = cow_domain_getnumlocalzonesinterior(sim->domain, 0);
@@ -62,9 +50,7 @@ void ffe_sim_measure(struct ffe_sim *sim, struct ffe_measure *meas)
   GLB_AVG(meas->magnetic_energy);
   GLB_AVG(meas->magnetic_monopole);
 
-#undef D1
-#undef D2
-#undef D3
+#undef GLB_AVG
 }
 
 
@@ -77,6 +63,12 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   cow_dfield *vecpoten = cow_dfield_new();
   cow_dfield *jcurrent = cow_dfield_new();
 
+
+  char gname[1024];
+  char nname[1024];
+
+  snprintf(gname, 1024, "spectra-%06d", sim->status.iteration);
+  snprintf(nname, 1024, "%12.10e", sim->status.time_simulation);
 
 
   /* Data fields setup */
@@ -104,8 +96,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   cow_histogram_setupper(Pb, 0, 8192);
   cow_histogram_setnbins(Pb, 0, 4096);
   cow_histogram_setspacing(Pb, COW_HIST_SPACING_LINEAR);
-  cow_histogram_setfullname(Pb, "magnetic");
   cow_histogram_setnickname(Pb, "magnetic");
+  cow_histogram_setfullname(Pb, nname);
 
 
   cow_histogram *Pe = cow_histogram_new();
@@ -113,8 +105,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   cow_histogram_setupper(Pe, 0, 8192);
   cow_histogram_setnbins(Pe, 0, 4096);
   cow_histogram_setspacing(Pe, COW_HIST_SPACING_LINEAR);
-  cow_histogram_setfullname(Pe, "electric");
   cow_histogram_setnickname(Pe, "electric");
+  cow_histogram_setfullname(Pe, nname);
 
 
   cow_histogram *Hr = cow_histogram_new();
@@ -122,8 +114,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   cow_histogram_setupper(Hr, 0, 8192);
   cow_histogram_setnbins(Hr, 0, 4096);
   cow_histogram_setspacing(Hr, COW_HIST_SPACING_LINEAR);
-  cow_histogram_setfullname(Hr, "helicity-real");
   cow_histogram_setnickname(Hr, "helicity-real");
+  cow_histogram_setfullname(Hr, nname);
 
 
   cow_histogram *Hi = cow_histogram_new();
@@ -131,8 +123,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   cow_histogram_setupper(Hi, 0, 8192);
   cow_histogram_setnbins(Hi, 0, 4096);
   cow_histogram_setspacing(Hi, COW_HIST_SPACING_LINEAR);
-  cow_histogram_setfullname(Hi, "helicity-imag");
   cow_histogram_setnickname(Hi, "helicity-imag");
+  cow_histogram_setfullname(Hi, nname);
 
 
   cow_fft_inversecurl(magnetic, vecpoten);
@@ -145,10 +137,6 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   cow_fft_helicityspec(magnetic, Hr, Hi);
 
   if (filename) {
-
-    char gname[1024];
-
-    snprintf(gname, 1024, "spectra-%06d", sim->status.iteration);
 
     cow_histogram_dumphdf5(Pb, filename, gname);
     cow_histogram_dumphdf5(Pe, filename, gname);
