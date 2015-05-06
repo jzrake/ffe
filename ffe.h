@@ -62,6 +62,7 @@ struct ffe_sim
   double time_between_checkpoints;
   double time_final;
   double fractional_helicity;
+  double abc_coefficients[3];
   int alpha_squared; /* wave-number (squared) of initial configuration */
   char kreiss_oliger_mode; /* 'c': coarse, 'f': fine 'n': none */
   char pfeiffer_terms; /* 't': true 'f': false */

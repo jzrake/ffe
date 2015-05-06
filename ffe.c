@@ -195,6 +195,7 @@ void ffe_sim_initial_data(struct ffe_sim *sim)
 
     int m = INDV(i,j,k);
     int n = INDS(i,j,k);
+
     double x[4] = {0,
     		   cow_domain_positionatindex(sim->domain, 0, i),
     		   cow_domain_positionatindex(sim->domain, 1, j),
@@ -613,7 +614,9 @@ int main(int argc, char **argv)
   sim.pfeiffer_terms = 'f';
   sim.alpha_squared = 1.0;
   sim.fractional_helicity = 1.0; /* [0-1] */
-
+  sim.abc_coefficients[0] = 1.0;
+  sim.abc_coefficients[1] = 1.0;
+  sim.abc_coefficients[2] = 0.0;
 
   strcpy(sim.output_directory, ".");
 
@@ -714,6 +717,16 @@ int main(int argc, char **argv)
     else if (!strncmp(argv[n], "helicity=", 9)) {
       sscanf(argv[n], "helicity=%lf", &sim.fractional_helicity);
     }
+    else if (!strncmp(argv[n], "abc=", 2)) {
+      int num = sscanf(argv[n], "abc=%lf,%lf,%lf",
+		       &sim.abc_coefficients[0],
+		       &sim.abc_coefficients[1],
+		       &sim.abc_coefficients[2]);
+      if (num != 3) {
+	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
+	return 1;
+      }
+    }
     else {
       printf("[ffe] error: unrecognized option '%s'\n", argv[n]);
       return 1;
@@ -727,15 +740,19 @@ int main(int argc, char **argv)
   ffe_sim_init(&sim);
 
   if (restarted_run) {
+
     cow_dfield_read(sim.electric[0], argv[1]);
     cow_dfield_read(sim.magnetic[0], argv[1]);
     cow_dfield_read(sim.psifield[0], argv[1]);
 
   }
+
   else {
+
     sim.status.time_last_checkpoint = -sim.time_between_checkpoints;
     sim.status.checkpoint_number = -1;
     ffe_sim_initial_data(&sim);
+
   }
 
   printf("\n-----------------------------------------\n");
@@ -806,11 +823,9 @@ int main(int argc, char **argv)
      * =================================================================
      */
 
-    ffe_sim_measure(&sim, &measure);
+    if (sim.status.iteration % 4   == 0) ffe_sim_measure(&sim, &measure);
+    if (sim.status.iteration % 100 == 0) ffe_sim_analyze(&sim, anlfile_name);
 
-    if (sim.status.iteration % 100 == 0) {
-      ffe_sim_analyze(&sim, anlfile_name);
-    }
 
     if (cow_domain_getcartrank(sim.domain) == 0) {
 
@@ -848,11 +863,10 @@ int main(int argc, char **argv)
   }
 
 
-
-  if (invalid_cfg == 0) {
-    sim.status.checkpoint_number += 1;
-    ffe_sim_write_checkpoint(&sim);
-  }
+  /* if (invalid_cfg == 0) { */
+  /*   sim.status.checkpoint_number += 1; */
+  /*   ffe_sim_write_checkpoint(&sim); */
+  /* } */
 
 
   ffe_sim_free(&sim);

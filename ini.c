@@ -41,9 +41,11 @@ void initial_data_alfvenwave(struct ffe_sim *sim, double x[4], double E[4], doub
 
 void initial_data_abc(struct ffe_sim *sim, double x[4], double E[4], double B[4])
 {
-  double a=1, b=1, c=1;
-  double alpha = sqrt(sim->alpha_squared) * 2 * M_PI;
+  double a = sim->abc_coefficients[0];
+  double b = sim->abc_coefficients[1];
+  double c = sim->abc_coefficients[2];
   double h = sim->fractional_helicity;
+  double alpha = sqrt(sim->alpha_squared) * 2 * M_PI;
 
   E[1] = 0.0;
   E[2] = 0.0;
