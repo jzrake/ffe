@@ -305,8 +305,8 @@ void ffe_sim_advance_rk(struct ffe_sim *sim, int RKstep)
 
 
     /* Electric and magnetic current evaluation */
-    double J[4];
-    double F[4];
+    double J[4] = { 0, 0, 0, 0 };
+    double F[4] = { 0, 0, 0, 0 };
 
     ffe_ohms_law(sim->flag_ohms_law, &E[m], rotE, divE, &B[m], rotB, divB, J);
 
@@ -634,6 +634,7 @@ int main(int argc, char **argv)
     printf("usage: ffe <problem-name> [tmax=1.0] [N=16,16,16]\n");
     printf("problems are:\n");
     ffe_sim_problem_setup(NULL, NULL);
+    cow_finalize();
     return 0;
   }
   else {
@@ -672,7 +673,8 @@ int main(int argc, char **argv)
     printf("[ffe] error: unkown problem name: '%s', choose one of\n",
 	   sim.problem_name);
     ffe_sim_problem_setup(NULL, NULL);
-    invalid_cfg = 1;
+    cow_finalize();
+    return 0;
   }
 
 
@@ -693,7 +695,7 @@ int main(int argc, char **argv)
       int num = sscanf(argv[n], "N=%d,%d,%d", &sim.Ni, &sim.Nj, &sim.Nk);
       if (num != 3) {
 	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
-	return 1;
+	invalid_cfg += 1;
       }
     }
     else if (!strncmp(argv[n], "outdir=", 7)) {
@@ -724,12 +726,12 @@ int main(int argc, char **argv)
 		       &sim.abc_coefficients[2]);
       if (num != 3) {
 	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
-	return 1;
+	invalid_cfg += 1;
       }
     }
     else {
       printf("[ffe] error: unrecognized option '%s'\n", argv[n]);
-      return 1;
+      invalid_cfg += 1;
     }
   }
 
@@ -870,7 +872,6 @@ int main(int argc, char **argv)
 
 
   ffe_sim_free(&sim);
-
   cow_finalize();
   return 0;
 }

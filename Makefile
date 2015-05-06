@@ -34,7 +34,7 @@ OBJ = $(SRC:.c=.o)
 default : ffe
 
 
-%.o : %.c ffe.h
+%.o : %.c ffe.h $(COW_LIB)
 	$(CC) $(CFLAGS) $< -c $(HDF5_I) $(FFTW_I) $(RNPL_I)
 
 ffe : $(OBJ) $(COW_LIB)
