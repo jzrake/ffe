@@ -1,0 +1,8 @@
+
+Makefile.in
+cow
+ffe
+
+*.o
+*.dat
+*.h5
