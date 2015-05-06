@@ -571,12 +571,19 @@ void ffe_sim_advance(struct ffe_sim *sim)
 
 
 
-void ffe_sim_write_checkpoint(struct ffe_sim *sim)
+void ffe_sim_write_checkpoint(struct ffe_sim *sim, const char *base_name)
 {
   char chkpt_name[1024];
-  snprintf(chkpt_name, 1024, "%s/chkpt.%04d.h5",
-	   sim->output_directory,
-	   sim->status.checkpoint_number);
+  if (base_name == NULL) {
+    snprintf(chkpt_name, 1024, "%s/chkpt.%04d.h5",
+	     sim->output_directory,
+	     sim->status.checkpoint_number);
+  }
+  else {
+    snprintf(chkpt_name, 1024, "%s/chkpt.%s.h5",
+	     sim->output_directory,
+	     base_name);
+  }
 
   cow_dfield_write(sim->electric[0], chkpt_name);
   cow_dfield_write(sim->magnetic[0], chkpt_name);
@@ -815,7 +822,7 @@ int main(int argc, char **argv)
       sim.status.time_last_checkpoint += sim.time_between_checkpoints;
       sim.status.checkpoint_number += 1;
 
-      ffe_sim_write_checkpoint(&sim);
+      ffe_sim_write_checkpoint(&sim, NULL);
     }
 
 
@@ -865,10 +872,9 @@ int main(int argc, char **argv)
   }
 
 
-  /* if (invalid_cfg == 0) { */
-  /*   sim.status.checkpoint_number += 1; */
-  /*   ffe_sim_write_checkpoint(&sim); */
-  /* } */
+  if (invalid_cfg == 0) {
+    ffe_sim_write_checkpoint(&sim, "final");
+  }
 
 
   ffe_sim_free(&sim);

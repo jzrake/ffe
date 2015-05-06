@@ -81,6 +81,7 @@ void ffe_sim_advance_rk(struct ffe_sim *sim, int RKstep);
 void ffe_sim_advance(struct ffe_sim *sim);
 void ffe_sim_kreiss_oliger(struct ffe_sim *sim);
 void ffe_sim_initial_data(struct ffe_sim *sim);
+void ffe_sim_write_checkpoint(struct ffe_sim *sim, const char *base_name);
 int  ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name);
 
 
