@@ -277,6 +277,44 @@ void ffe_sim_advance_rk(struct ffe_sim *sim, int RKstep)
 
     P[n] = P0[n] + dt * RKparam * dtP[n];
 
+
+
+
+
+
+
+
+
+
+    /*
+     * Subtract out the component of E parallel to B
+     */
+    double BB = DOT(&B[m], &B[m]);
+    double EB = DOT(&E[m], &B[m]);
+
+
+    E[m+1] -= EB/BB * B[m+1];
+    E[m+2] -= EB/BB * B[m+2];
+    E[m+3] -= EB/BB * B[m+3];
+
+
+
+
+    /*
+     * Cap the electric field vector to ensure E <= B
+     */
+    double EE = DOT(&E[m], &E[m]);
+
+    if (EE > BB) {
+
+      double f = sqrt(BB/EE);
+
+      E[m+1] *= f;
+      E[m+2] *= f;
+      E[m+3] *= f;
+
+    }
+
   }
 
   cow_dfield_syncguard(sim->electric[1]);
@@ -496,41 +534,6 @@ void ffe_sim_average_rk(struct ffe_sim *sim)
     P[n] += dt/6 * (dtP0[n] + 2*dtP1[n] + 2*dtP2[n] + dtP3[n]);
 
 
-
-
-
-
-
-
-    /*
-     * Subtract out the component of E parallel to B
-     */
-    double BB = DOT(&B[m], &B[m]);
-    double EB = DOT(&E[m], &B[m]);
-
-
-    E[m+1] -= EB/BB * B[m+1];
-    E[m+2] -= EB/BB * B[m+2];
-    E[m+3] -= EB/BB * B[m+3];
-
-
-
-
-    /*
-     * Cap the electric field vector to ensure E <= B
-     */
-    double EE = DOT(&E[m], &E[m]);
-
-    if (EE > BB) {
-
-      double f = sqrt(BB/EE);
-
-      E[m+1] *= f;
-      E[m+2] *= f;
-      E[m+3] *= f;
-
-    }
-
   }
 
   cow_dfield_syncguard(sim->electric[0]);
@@ -617,7 +620,7 @@ int main(int argc, char **argv)
   sim.time_between_checkpoints = 1.0;
   sim.cfl_parameter = 0.10;
   sim.eps_parameter = 0.50; /* [0-1] */
-  sim.kreiss_oliger_mode = 'c';
+  sim.kreiss_oliger_mode = 'c'; /* TODO: correct means of doing 'fine' */
   sim.pfeiffer_terms = 'f';
   sim.alpha_squared = 1.0;
   sim.fractional_helicity = 1.0; /* [0-1] */
