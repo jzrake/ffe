@@ -93,8 +93,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   /* ---------------------------------------------------- */
   cow_histogram *Pe = cow_histogram_new();
   cow_histogram_setlower(Pe, 0, 1);
-  cow_histogram_setupper(Pe, 0, 8192);
-  cow_histogram_setnbins(Pe, 0, 4096);
+  cow_histogram_setupper(Pe, 0, sim->max_pspec_bin);
+  cow_histogram_setnbins(Pe, 0, sim->num_pspec_bins);
   cow_histogram_setspacing(Pe, COW_HIST_SPACING_LINEAR);
   cow_histogram_setnickname(Pe, "electric");
   cow_histogram_setfullname(Pe, nname);
@@ -102,8 +102,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
 
   cow_histogram *Pb = cow_histogram_new();
   cow_histogram_setlower(Pb, 0, 1);
-  cow_histogram_setupper(Pb, 0, 8192);
-  cow_histogram_setnbins(Pb, 0, 4096);
+  cow_histogram_setupper(Pb, 0, sim->max_pspec_bin);
+  cow_histogram_setnbins(Pb, 0, sim->num_pspec_bins);
   cow_histogram_setspacing(Pb, COW_HIST_SPACING_LINEAR);
   cow_histogram_setnickname(Pb, "magnetic");
   cow_histogram_setfullname(Pb, nname);
@@ -111,8 +111,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
 
   cow_histogram *Hr = cow_histogram_new();
   cow_histogram_setlower(Hr, 0, 1);
-  cow_histogram_setupper(Hr, 0, 8192);
-  cow_histogram_setnbins(Hr, 0, 4096);
+  cow_histogram_setupper(Hr, 0, sim->max_pspec_bin);
+  cow_histogram_setnbins(Hr, 0, sim->num_pspec_bins);
   cow_histogram_setspacing(Hr, COW_HIST_SPACING_LINEAR);
   cow_histogram_setnickname(Hr, "helicity-real");
   cow_histogram_setfullname(Hr, nname);
@@ -120,8 +120,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
 
   cow_histogram *Hi = cow_histogram_new();
   cow_histogram_setlower(Hi, 0, 1);
-  cow_histogram_setupper(Hi, 0, 8192);
-  cow_histogram_setnbins(Hi, 0, 4096);
+  cow_histogram_setupper(Hi, 0, sim->max_pspec_bin);
+  cow_histogram_setnbins(Hi, 0, sim->num_pspec_bins);
   cow_histogram_setspacing(Hi, COW_HIST_SPACING_LINEAR);
   cow_histogram_setnickname(Hi, "helicity-imag");
   cow_histogram_setfullname(Hi, nname);

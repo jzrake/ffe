@@ -627,6 +627,10 @@ int main(int argc, char **argv)
   sim.abc_coefficients[0] = 1.0;
   sim.abc_coefficients[1] = 1.0;
   sim.abc_coefficients[2] = 0.0;
+  sim.measure_cadence = 1;
+  sim.analyze_cadence = 100;
+  sim.num_pspec_bins = 4096;
+  sim.max_pspec_bin = 8192;
 
   strcpy(sim.output_directory, ".");
 
@@ -739,6 +743,17 @@ int main(int argc, char **argv)
 	invalid_cfg += 1;
       }
     }
+    else if (!strncmp(argv[n], "post=", 5)) {
+      int num = sscanf(argv[n], "post=%d,%d,%d,%d",
+		       &sim.measure_cadence,
+		       &sim.analyze_cadence,
+		       &sim.num_pspec_bins,
+		       &sim.max_pspec_bin);
+      if (num != 4) {
+	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
+	invalid_cfg += 1;
+      }
+    }
     else {
       printf("[ffe] error: unrecognized option '%s'\n", argv[n]);
       invalid_cfg += 1;
@@ -778,6 +793,10 @@ int main(int argc, char **argv)
   printf("pfeiffer_terms ............. %c\n", sim.pfeiffer_terms);
   printf("alpha_squared .............. %d\n", sim.alpha_squared);
   printf("fractional_helicity ........ %12.10lf\n", sim.fractional_helicity);
+  printf("measure_cadence ............ %d\n", sim.measure_cadence);
+  printf("analyze_cadence ............ %d\n", sim.analyze_cadence);
+  printf("num_pspec_bins ............. %d\n", sim.num_pspec_bins);
+  printf("max_pspec_bin .............. %d\n", sim.max_pspec_bin);
   printf("-----------------------------------------\n\n");
 
 
@@ -842,9 +861,10 @@ int main(int argc, char **argv)
      * Handle post-processing and reductions
      * =================================================================
      */
+    int iter = sim.status.iteration;
+    if (iter % sim.measure_cadence == 0) ffe_sim_measure(&sim, &measure);
+    if (iter % sim.analyze_cadence == 0) ffe_sim_analyze(&sim, anlfile_name);
 
-    if (sim.status.iteration % 1  == 0) ffe_sim_measure(&sim, &measure);
-    if (sim.status.iteration % 50 == 0) ffe_sim_analyze(&sim, anlfile_name);
 
 
     if (cow_domain_getcartrank(sim.domain) == 0) {

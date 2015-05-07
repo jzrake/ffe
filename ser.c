@@ -103,6 +103,10 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
   ADD_MEM(alpha_squared, H5T_NATIVE_INT);
   ADD_MEM(output_directory, h5t_string_1024);
   ADD_MEM(problem_name, h5t_string_1024);
+  ADD_MEM(measure_cadence, H5T_NATIVE_INT);
+  ADD_MEM(analyze_cadence, H5T_NATIVE_INT);
+  ADD_MEM(num_pspec_bins, H5T_NATIVE_INT);
+  ADD_MEM(max_pspec_bin, H5T_NATIVE_INT);
 
   if (mode == 'w') {
 

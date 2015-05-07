@@ -68,6 +68,10 @@ struct ffe_sim
   char pfeiffer_terms; /* 't': true 'f': false */
   char output_directory[1024];
   char problem_name[1024];
+  int measure_cadence;
+  int analyze_cadence;
+  int num_pspec_bins;
+  int max_pspec_bin;
 } ;
 
 
