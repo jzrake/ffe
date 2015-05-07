@@ -786,10 +786,18 @@ int main(int argc, char **argv)
   snprintf(anlfile_name, 1024, "%s/analysis.h5", sim.output_directory);
 
   if (cow_domain_getcartrank(sim.domain) == 0) {
-  
+
+    FILE *logf = NULL;
+
     mkdir(sim.output_directory, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
-    FILE *logf = fopen(logfile_name, "w");
+    if (restarted_run) {
+      logf = fopen(logfile_name, "a");
+    }
+    else {
+      logf = fopen(logfile_name, "w");
+    }
+
     
     if (logf == NULL) {
       printf("[ffe] error: could not open log file '%s'\n", logfile_name);
@@ -832,8 +840,8 @@ int main(int argc, char **argv)
      * =================================================================
      */
 
-    if (sim.status.iteration % 4   == 0) ffe_sim_measure(&sim, &measure);
-    if (sim.status.iteration % 100 == 0) ffe_sim_analyze(&sim, anlfile_name);
+    if (sim.status.iteration % 1  == 0) ffe_sim_measure(&sim, &measure);
+    if (sim.status.iteration % 50 == 0) ffe_sim_analyze(&sim, anlfile_name);
 
 
     if (cow_domain_getcartrank(sim.domain) == 0) {
@@ -873,7 +881,13 @@ int main(int argc, char **argv)
 
 
   if (invalid_cfg == 0) {
-    ffe_sim_write_checkpoint(&sim, "final");
+    if (sim.time_final == 0.0) {
+      sim.status.checkpoint_number = 0;
+      ffe_sim_write_checkpoint(&sim, NULL);
+    }
+    else {
+      ffe_sim_write_checkpoint(&sim, "final");
+    }
   }
 
 
