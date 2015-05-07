@@ -123,9 +123,9 @@ void random_beltrami_field(double x[4], double B[4], int model, int k2, double h
   	  M.k[2] = j;
   	  M.k[3] = k;
   	  M.A[0] = 0.0;
-  	  M.A[1] = RAND + RAND*I;
-  	  M.A[2] = RAND + RAND*I;
-  	  M.A[3] = RAND + RAND*I;
+  	  M.A[1] = RAND + RAND*I*h;
+  	  M.A[2] = RAND + RAND*I*h;
+  	  M.A[3] = RAND + RAND*I*h;
   	  amp = sqrt(M.A[1]*conj(M.A[1]) + M.A[2]*conj(M.A[2]) + M.A[3]*conj(M.A[3]));
   	  M.A[1] /= amp;
   	  M.A[2] /= amp;

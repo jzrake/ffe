@@ -58,8 +58,8 @@ void ffe_sim_measure(struct ffe_sim *sim, struct ffe_measure *meas)
 void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
 {
   cow_domain *domain = sim->domain;
-  cow_dfield *magnetic = sim->magnetic[0];
   cow_dfield *electric = sim->electric[0];
+  cow_dfield *magnetic = sim->magnetic[0];
   cow_dfield *vecpoten = cow_dfield_new();
   cow_dfield *jcurrent = cow_dfield_new();
 
@@ -91,15 +91,6 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
 
   /* Histograms setup */
   /* ---------------------------------------------------- */
-  cow_histogram *Pb = cow_histogram_new();
-  cow_histogram_setlower(Pb, 0, 1);
-  cow_histogram_setupper(Pb, 0, 8192);
-  cow_histogram_setnbins(Pb, 0, 4096);
-  cow_histogram_setspacing(Pb, COW_HIST_SPACING_LINEAR);
-  cow_histogram_setnickname(Pb, "magnetic");
-  cow_histogram_setfullname(Pb, nname);
-
-
   cow_histogram *Pe = cow_histogram_new();
   cow_histogram_setlower(Pe, 0, 1);
   cow_histogram_setupper(Pe, 0, 8192);
@@ -107,6 +98,15 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   cow_histogram_setspacing(Pe, COW_HIST_SPACING_LINEAR);
   cow_histogram_setnickname(Pe, "electric");
   cow_histogram_setfullname(Pe, nname);
+
+
+  cow_histogram *Pb = cow_histogram_new();
+  cow_histogram_setlower(Pb, 0, 1);
+  cow_histogram_setupper(Pb, 0, 8192);
+  cow_histogram_setnbins(Pb, 0, 4096);
+  cow_histogram_setspacing(Pb, COW_HIST_SPACING_LINEAR);
+  cow_histogram_setnickname(Pb, "magnetic");
+  cow_histogram_setfullname(Pb, nname);
 
 
   cow_histogram *Hr = cow_histogram_new();
@@ -131,18 +131,38 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   cow_fft_curl       (magnetic, jcurrent);
 
 
-
   cow_fft_pspecvecfield(magnetic, Pb);
   cow_fft_pspecvecfield(electric, Pe);
   cow_fft_helicityspec(magnetic, Hr, Hi);
 
+  int Nt = cow_domain_getnumglobalzones(sim->domain, COW_ALL_DIMS);
+  int Ni = cow_domain_getnumlocalzonesinterior(sim->domain, 0);
+  int Nj = cow_domain_getnumlocalzonesinterior(sim->domain, 1);
+  int Nk = cow_domain_getnumlocalzonesinterior(sim->domain, 2);
+  int si = cow_dfield_getstride(sim->electric[0], 0);
+  int sj = cow_dfield_getstride(sim->electric[0], 1);
+  int sk = cow_dfield_getstride(sim->electric[0], 2);
+  double *A = (double*) cow_dfield_getdatabuffer(vecpoten);
+  double *B = (double*) cow_dfield_getdatabuffer(magnetic);
+
+  double htot = 0.0;
+
+  FOR_ALL_INTERIOR(Ni, Nj, Nk) {
+    int m = INDV(i,j,k);
+    htot += DOT(&A[m], &B[m]);
+  }
+
+  htot = cow_domain_dblsum(domain, htot) / Nt;
+  printf("[main] total magnetic helicity: %8.6e\n", htot);
+
+
+
   if (filename) {
 
-    cow_histogram_dumphdf5(Pb, filename, gname);
     cow_histogram_dumphdf5(Pe, filename, gname);
-    cow_histogram_dumphdf5(Hi, filename, gname);
+    cow_histogram_dumphdf5(Pb, filename, gname);
     cow_histogram_dumphdf5(Hr, filename, gname);
-
+    cow_histogram_dumphdf5(Hi, filename, gname);
 
     if (0) { /* write derived fields */
       cow_dfield_write(magnetic, filename);
