@@ -40,6 +40,39 @@ static void ffe_ohms_law(enum FfeSimParameter flag_ohms_law,
 
 
 
+static void enforce_EB_constraints(double E[4], double B[4])
+{
+    /*
+     * Subtract out the component of E parallel to B
+     */
+    double BB = DOT(B, B);
+    double EB = DOT(E, B);
+
+
+    E[1] -= EB/BB * B[1];
+    E[2] -= EB/BB * B[2];
+    E[3] -= EB/BB * B[3];
+
+
+
+
+    /*
+     * Cap the electric field vector to ensure E <= B
+     */
+    double EE = DOT(E, E);
+
+    if (EE > BB) {
+
+      double f = sqrt(BB/EE);
+
+      E[1] *= f;
+      E[2] *= f;
+      E[3] *= f;
+
+    }
+}
+
+
 /*
  * Initialze a new simulation instance. Parameters that need to be initialized
  * before this call:
@@ -277,45 +310,20 @@ void ffe_sim_advance_rk(struct ffe_sim *sim, int RKstep)
 
     P[n] = P0[n] + dt * RKparam * dtP[n];
 
+    enforce_EB_constraints(&E[m], &B[m]);
+  }
 
 
+  FOR_ALL_INTERIOR(Ni, Nj, Nk) {
 
-
-
-
-
-
-
-    /*
-     * Subtract out the component of E parallel to B
-     */
+    int m = INDV(i,j,k);
     double BB = DOT(&B[m], &B[m]);
-    double EB = DOT(&E[m], &B[m]);
-
-
-    E[m+1] -= EB/BB * B[m+1];
-    E[m+2] -= EB/BB * B[m+2];
-    E[m+3] -= EB/BB * B[m+3];
-
-
-
-
-    /*
-     * Cap the electric field vector to ensure E <= B
-     */
     double EE = DOT(&E[m], &E[m]);
 
-    if (EE > BB) {
-
-      double f = sqrt(BB/EE);
-
-      E[m+1] *= f;
-      E[m+2] *= f;
-      E[m+3] *= f;
-
-    }
-
+    double g = sqrt(BB/EE);
+    if (g<0.9999999999999) printf("%12.10e\n", g);
   }
+
 
   cow_dfield_syncguard(sim->electric[1]);
   cow_dfield_syncguard(sim->magnetic[1]);
@@ -467,6 +475,7 @@ void ffe_sim_kreiss_oliger(struct ffe_sim *sim)
 
     P[n] -= eps * KO_const * dP[n];
 
+    enforce_EB_constraints(&E[m], &B[m]);
   }
 
 
@@ -533,8 +542,9 @@ void ffe_sim_average_rk(struct ffe_sim *sim)
 
     P[n] += dt/6 * (dtP0[n] + 2*dtP1[n] + 2*dtP2[n] + dtP3[n]);
 
-
+    enforce_EB_constraints(&E[m], &B[m]);
   }
+
 
   cow_dfield_syncguard(sim->electric[0]);
   cow_dfield_syncguard(sim->magnetic[0]);
@@ -640,7 +650,6 @@ int main(int argc, char **argv)
    * Print a help message
    * ===================================================================
    */
-
   printf("\nForce-free electrodynamics solver\n");
   printf("Jonathan Zrake, Stanford University (2015)\n");
 
