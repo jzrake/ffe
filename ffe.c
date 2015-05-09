@@ -167,33 +167,21 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
     return 0;
   }
   else if (!strcmp(problem_name, "emwave")) {
-    sim->Ni = 16;
-    sim->Nj = 16;
-    sim->Nk = 64;
     sim->initial_data = initial_data_emwave;
     sim->flag_ohms_law = FFE_OHMS_LAW_VACUUM;
     return 0;
   }
   else if (!strcmp(problem_name, "alfvenwave")) {
-    sim->Ni = 16;
-    sim->Nj = 16;
-    sim->Nk = 64;
     sim->initial_data = initial_data_alfvenwave;
     sim->flag_ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     return 0;
   }
   else if (!strcmp(problem_name, "abc")) {
-    sim->Ni = 128;
-    sim->Nj = 128;
-    sim->Nk = 1;
     sim->initial_data = initial_data_abc;
     sim->flag_ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     return 0;
   }
   else if (!strcmp(problem_name, "beltrami")) {
-    sim->Ni = 64;
-    sim->Nj = 64;
-    sim->Nk = 64;
     sim->initial_data = initial_data_beltrami;
     sim->flag_ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     return 0;
@@ -626,6 +614,9 @@ int main(int argc, char **argv)
   memset(sim.output_directory, '\0', 1024);
   memset(sim.problem_name, '\0', 1024);
 
+  sim.Ni = 128;
+  sim.Nj = 128;
+  sim.Nk = 1;
   sim.time_final = 1.0;
   sim.time_between_checkpoints = 1.0;
   sim.cfl_parameter = 0.10;
