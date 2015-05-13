@@ -97,7 +97,7 @@ typedef struct fourier_mode
 void random_beltrami_field(double x[4], double B[4], int model, int k2, double h)
 {
 #define RAND jsw_random_double(&rand, -1, 1)
-  int m,i,j,k;
+  int m,d,i,j,k;
   jsw_rand_t rand;
   jsw_seed(&rand, model);
 
@@ -107,64 +107,78 @@ void random_beltrami_field(double x[4], double B[4], int model, int k2, double h
   fourier_mode *modes = NULL;
   int num_modes = 0;
   Complex A[4] = {0, 0, 0, 0};
-  double amp;
 
-  for (i=-k_cube; i<=k_cube; ++i) {
+
+  for (i=1; i<=k_cube; ++i) {
     for (j=-k_cube; j<=k_cube; ++j) {
       for (k=-k_cube; k<=k_cube; ++k) {
+
   	fourier_mode M;
+	double phase = RAND * M_PI;
 
   	if (i*i + j*j + k*k != k2_sphere) {
   	  continue;
   	}
   	else {
+  	  /* printf("k[%d] = [%d %d %d] is on shell\n", num_modes, i, j, k); */
+
   	  M.k[0] = 0.0;
   	  M.k[1] = i;
   	  M.k[2] = j;
   	  M.k[3] = k;
-  	  M.A[0] = 0.0;
-  	  M.A[1] = RAND + RAND*I*h;
-  	  M.A[2] = RAND + RAND*I*h;
-  	  M.A[3] = RAND + RAND*I*h;
-  	  amp = sqrt(M.A[1]*conj(M.A[1]) + M.A[2]*conj(M.A[2]) + M.A[3]*conj(M.A[3]));
-  	  M.A[1] /= amp;
-  	  M.A[2] /= amp;
-  	  M.A[3] /= amp;
+
+
+	  double e0[4] = {0, RAND, RAND, RAND}; /* any vector not parallel to k */
+	  double e1[4] = CROSS(M.k, e0);
+	  double e2[4] = CROSS(M.k, e1);
+	  double A1 = sqrt(DOT(e1, e1));
+	  double A2 = sqrt(DOT(e2, e2));
+
+	  for (d=1; d<=3; ++d) {
+	    e1[d] /= A1;
+	    e2[d] /= A2;
+	  }
+
+	  for (d=1; d<=3; ++d) {	  
+	    M.A[d] = (e1[d] + e2[d]) * cexp(I * phase);
+	  }
+
   	  num_modes += 1;
   	  modes = (fourier_mode *) realloc(modes, num_modes * sizeof(fourier_mode));
   	  modes[num_modes-1] = M;
 
-  	  /* printf("k[%d] = [%d %d %d] is on shell\n", num_modes, i, j, k); */
+
+	  /* reality condition */
+	  for (d=1; d<=3; ++d) {
+	    M.k[d] = -M.k[d];
+	    M.A[d] = conj(M.A[d]);
+	  }
+  	  num_modes += 1;
+  	  modes = (fourier_mode *) realloc(modes, num_modes * sizeof(fourier_mode));
+  	  modes[num_modes-1] = M;
   	}
       }
     }
   }
 
-
   for (m=0; m<num_modes; ++m) {
+    double a = sqrt(k2);
     fourier_mode M = modes[m];
-    double a = sqrt(M.k[1]*M.k[1] + M.k[2]*M.k[2] + M.k[3]*M.k[3]);
     Complex K[4] = {0, I*M.k[1], I*M.k[2], I*M.k[3]};
     Complex Ikx  = (K[1]*x[1] + K[2]*x[2] + K[3]*x[3]) * 2 * M_PI;
     Complex P[4] = {0, M.A[1], M.A[2], M.A[3]}; /* a times psi */
+    Complex H[4] = CROSS(K, P);
 
-    Complex T[4] = {0, /* T = K cross (a psi) */
-		    K[2]*P[3] - K[3]*P[2],
-		    K[3]*P[1] - K[1]*P[3],
-		    K[1]*P[2] - K[2]*P[1]};
-
-    Complex S[4] = {0, /* S = K cross T / alpha */
-		    (K[2]*T[3] - K[3]*T[2])/a,
-		    (K[3]*T[1] - K[1]*T[3])/a,
-		    (K[1]*T[2] - K[2]*T[1])/a};
-
-    A[1] += (h*S[1] + T[1])/a * cexp(Ikx);
-    A[2] += (h*S[2] + T[2])/a * cexp(Ikx);
-    A[3] += (h*S[3] + T[3])/a * cexp(Ikx);
+    A[1] += (P[1] + h*H[1]/a) * cexp(Ikx);
+    A[2] += (P[2] + h*H[2]/a) * cexp(Ikx);
+    A[3] += (P[3] + h*H[3]/a) * cexp(Ikx);
   }
 
 
   free(modes);
+
+  /* printf("im(A) = %+8.6e %+8.6e %+8.6e\n", */
+  /* 	 cimag(A[1]), cimag(A[2]), cimag(A[3])); */
 
   B[1] = A[1];
   B[2] = A[2];

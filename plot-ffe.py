@@ -7,6 +7,15 @@ import numpy as np
 
 
 
+def downsample(A, factor):
+
+    if factor == 0:
+        return A
+    else:
+        return downsample(0.5 * (A[0:-2:2] + A[1:-1:2]), factor-1)
+
+
+
 def pspec_plot(ax, k, P, comp=0, window=0,
                match_kstar=False,
                match_Pstar=False,
@@ -15,7 +24,8 @@ def pspec_plot(ax, k, P, comp=0, window=0,
     # Smooth the spectrum data
     # ----------------------------------------------------------
     if window != 0:
-        pass
+        P = downsample(P, window)
+        k = downsample(k, window)
         #W = window
         #P = smooth(P, 2*W+1)[W:-W]
 
@@ -51,7 +61,7 @@ def pspec_plot(ax, k, P, comp=0, window=0,
 
     # Do the plot
     # ----------------------------------------------------------
-    ax.semilogx(k, P * k**c, **plot_kwargs)
+    ax.loglog(k, P * k**c, **plot_kwargs)
 
 
 
@@ -70,11 +80,30 @@ def imshow_field(ax, which, component, directory, checkpoint):
 
 
 
+def E2Bhist_plot(ax, directory, checkpoint):
+
+    h5f = h5py.File("%s/chkpt.%04d.h5" % (directory, checkpoint))
+    E1 = h5f['electric']['E1'][...]
+    E2 = h5f['electric']['E2'][...]
+    E3 = h5f['electric']['E3'][...]
+    B1 = h5f['magnetic']['B1'][...]
+    B2 = h5f['magnetic']['B2'][...]
+    B3 = h5f['magnetic']['B3'][...]
+
+    E2B = (E1**2 + E2**2 + E3**2)**0.5 / (B1**2 + B2**2 + B3**2)**0.5
+    print E2B.max()
+    ax.hist(np.log10(E2B).flat, bins=1024, histtype='step', log=True, label=str(checkpoint))
+
+
+
 def show_log(ax, directory, **kwargs):
 
     ffe_dat = np.loadtxt("%s/ffe.dat" % directory)
-        
-    if len(ffe_dat) == 0: # it was empty
+
+    if len(ffe_dat.shape) == 1:
+        return
+
+    if len(ffe_dat[:,0]) == 0: # it was empty
         return
 
     t                 = ffe_dat[:,0]
@@ -123,10 +152,11 @@ def plot_pspec():
 
     directory = sys.argv[1]
     h5f = h5py.File("%s/analysis.h5" % directory)
-
+    comp = {'magnetic':(4,3), 'electric':0, 'helicity-real':0}
 
     for ax, which in zip([ax1, ax2, ax3], ['magnetic', 'electric', 'helicity-real']):
-        for g in ['spectra-000400', 'spectra-000600', 'spectra-000800']:
+        for n, g in enumerate(h5f):
+            if n % 10 != 0: continue
             try:
                 k = h5f[g][which]['binlocX'][:]
                 P = h5f[g][which]['binval'][:]
@@ -135,7 +165,8 @@ def plot_pspec():
                 continue
 
             try:
-                pspec_plot(ax, k, P)
+                if abs(P).max() > 1e-10:
+                    pspec_plot(ax, k, P, comp=comp[which], window=0)
             except ValueError as e:
                 print "something happened:", e, g, which
                 print P
@@ -152,18 +183,32 @@ def plot_pspec():
 def compare_logs():
 
     fig = plt.figure(figsize=[12,10])
-    ax0 = fig.add_subplot(1, 1, 1)
+    ax1 = fig.add_subplot(1, 1, 1)
     num = len(sys.argv[1:])
 
-    for n, arg in enumerate(sys.argv[1:]):
-        show_log(ax0, arg)
+    for arg in sys.argv[1:]:
+        show_log(ax1, arg)
 
-    ax0.legend(loc='best')
+    ax1.legend(loc='best')
     plt.show()
 
 
 
+def plot_E2Bhist():
+
+    fig = plt.figure(figsize=[12,10])
+    ax1 = fig.add_subplot(1, 1, 1)
+    num = len(sys.argv[1:])
+
+    for arg in sys.argv[2:]:
+        E2Bhist_plot(ax1, sys.argv[1], int(arg))
+
+    plt.legend()
+    plt.show()
+
+
 if __name__ == "__main__":
-    plot_pspec()
-    #summarize_run()
+    #plot_pspec()
+    summarize_run()
     #compare_logs()
+    #plot_E2Bhist()

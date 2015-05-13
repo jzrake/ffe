@@ -146,14 +146,17 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   double *B = (double*) cow_dfield_getdatabuffer(magnetic);
 
   double htot = 0.0;
+  double utot = 0.0;
 
   FOR_ALL_INTERIOR(Ni, Nj, Nk) {
     int m = INDV(i,j,k);
     htot += DOT(&A[m], &B[m]);
+    utot += DOT(&B[m], &B[m]);
   }
 
   htot = cow_domain_dblsum(domain, htot) / Nt;
-  printf("[main] total magnetic helicity: %8.6e\n", htot);
+  utot = cow_domain_dblsum(domain, utot) / Nt;
+  printf("[main] helicity: Hm=%8.6e Ub/Hm=%8.6e\n", htot, utot/htot/(2*M_PI));
 
 
 
