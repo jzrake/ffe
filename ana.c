@@ -118,7 +118,7 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   cow_histogram_setupper(Hr, 0, sim->max_pspec_bin);
   cow_histogram_setnbins(Hr, 0, sim->num_pspec_bins);
   cow_histogram_setspacing(Hr, COW_HIST_SPACING_LINEAR);
-  cow_histogram_setnickname(Hr, "helicity-real");
+  cow_histogram_setnickname(Hr, "helicity");
   cow_histogram_setfullname(Hr, nname);
 
 
@@ -169,7 +169,6 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
     cow_histogram_dumphdf5(Pe, filename, gname);
     cow_histogram_dumphdf5(Pb, filename, gname);
     cow_histogram_dumphdf5(Hr, filename, gname);
-    cow_histogram_dumphdf5(Hi, filename, gname);
 
     if (0) { /* write derived fields */
       cow_dfield_write(magnetic, filename);

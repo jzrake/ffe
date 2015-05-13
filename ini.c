@@ -130,18 +130,15 @@ void random_beltrami_field(double x[4], double B[4], int model, int k2, double h
 
 	  double e0[4] = {0, RAND, RAND, RAND}; /* any vector not parallel to k */
 	  double e1[4] = CROSS(M.k, e0);
-	  double e2[4] = CROSS(M.k, e1);
 	  double A1 = sqrt(DOT(e1, e1));
-	  double A2 = sqrt(DOT(e2, e2));
 
 	  for (d=1; d<=3; ++d) {
 	    e1[d] /= A1;
-	    e2[d] /= A2;
 	  }
 
 	  M.A[0] = 0.0;
 	  for (d=1; d<=3; ++d) {	  
-	    M.A[d] = (e1[d] + e2[d]) * cexp(I * phase);
+	    M.A[d] = e1[d] * cexp(I * phase);
 	  }
 
   	  num_modes += 1;
