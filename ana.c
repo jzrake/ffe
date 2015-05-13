@@ -2,6 +2,10 @@
 #include <math.h>
 #include "ffe.h"
 
+#ifndef M_PI
+#define M_PI 3.1415926535897926
+#endif
+
 
 
 /*

@@ -139,6 +139,7 @@ void random_beltrami_field(double x[4], double B[4], int model, int k2, double h
 	    e2[d] /= A2;
 	  }
 
+	  M.A[0] = 0.0;
 	  for (d=1; d<=3; ++d) {	  
 	    M.A[d] = (e1[d] + e2[d]) * cexp(I * phase);
 	  }
