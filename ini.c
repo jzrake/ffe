@@ -11,7 +11,7 @@
 
 
 
-static void random_beltrami_field(double x[4], double B[4], int model, int k2, double h);
+static void random_beltrami_field(double x[4], double B[4], int model, int k2, double h, int rank);
 
 
 
@@ -74,7 +74,11 @@ void initial_data_beltrami(struct ffe_sim *sim, double x[4], double E[4], double
   E[2] = 0.0;
   E[3] = 0.0;
 
-  random_beltrami_field(x, B, 0, sim->alpha_squared, sim->fractional_helicity);
+  int rank = 0;
+  rank += sim->Ni > 1;
+  rank += sim->Nj > 1;
+  rank += sim->Nk > 1;
+  random_beltrami_field(x, B, 0, sim->alpha_squared, sim->fractional_helicity, rank);
 }
 
 
@@ -94,7 +98,7 @@ typedef struct fourier_mode
 
 
 
-void random_beltrami_field(double x[4], double B[4], int model, int k2, double h)
+void random_beltrami_field(double x[4], double B[4], int model, int k2, double h, int rank)
 {
 #define RAND jsw_random_double(&rand, -1, 1)
   int m,d,i,j,k;
@@ -110,8 +114,8 @@ void random_beltrami_field(double x[4], double B[4], int model, int k2, double h
 
 
   for (i=1; i<=k_cube; ++i) {
-    for (j=-k_cube; j<=k_cube; ++j) {
-      for (k=-k_cube; k<=k_cube; ++k) {
+    for (j=-k_cube*(rank >= 2); j<=k_cube*(rank >= 2); ++j) {
+      for (k=-k_cube*(rank >= 3); k<=k_cube*(rank >= 3); ++k) {
 
   	fourier_mode M;
 	double phase = RAND * M_PI;
