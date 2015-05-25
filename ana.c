@@ -171,7 +171,6 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
     cow_histogram_dumphdf5(Hr, filename, gname);
 
     if (0) { /* write derived fields */
-      cow_dfield_write(magnetic, filename);
       cow_dfield_write(vecpoten, filename);
       cow_dfield_write(jcurrent, filename);
     }

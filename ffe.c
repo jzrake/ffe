@@ -302,17 +302,6 @@ void ffe_sim_advance_rk(struct ffe_sim *sim, int RKstep)
   }
 
 
-  FOR_ALL_INTERIOR(Ni, Nj, Nk) {
-
-    int m = INDV(i,j,k);
-    double BB = DOT(&B[m], &B[m]);
-    double EE = DOT(&E[m], &E[m]);
-
-    double g = sqrt(BB/EE);
-    if (g<0.9999999999999) printf("%12.10e\n", g);
-  }
-
-
   cow_dfield_syncguard(sim->electric[1]);
   cow_dfield_syncguard(sim->magnetic[1]);
   cow_dfield_syncguard(sim->psifield[1]);
