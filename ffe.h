@@ -63,6 +63,7 @@ struct ffe_sim
   double time_final;
   double fractional_helicity;
   double abc_coefficients[3];
+  double damping_timescale;
   int alpha_squared; /* wave-number (squared) of initial configuration */
   char kreiss_oliger_mode; /* 'c': coarse, 'f': fine 'n': none */
   char pfeiffer_terms; /* 't': true 'f': false */
@@ -97,6 +98,7 @@ void initial_data_emwave    (struct ffe_sim *sim, double x[4], double E[4], doub
 void initial_data_alfvenwave(struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_abc       (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_beltrami  (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
+void initial_data_clayer    (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 
 
 /*

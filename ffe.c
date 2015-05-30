@@ -11,6 +11,7 @@
  * =====================================================================
  */
 static void ffe_ohms_law(enum FfeSimParameter flag_ohms_law,
+			 double damping_timescale,
 			 double E[4], double rotE[4], double divE,
 			 double B[4], double rotB[4], double divB, double J[4])
 {
@@ -33,6 +34,13 @@ static void ffe_ohms_law(enum FfeSimParameter flag_ohms_law,
       J[1] = (B[1] * Jb + S[1] * Js) / B2;
       J[2] = (B[2] * Jb + S[2] * Js) / B2;
       J[3] = (B[3] * Jb + S[3] * Js) / B2;
+
+      if (damping_timescale > 0.0) {
+	J[1] += E[1] / damping_timescale;
+	J[2] += E[2] / damping_timescale;
+	J[3] += E[3] / damping_timescale;
+      }
+
     }
     break;
   }
@@ -164,6 +172,7 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
     printf("2. alfvenwave\n");
     printf("3. abc\n");
     printf("4. beltrami\n");
+    printf("5. clayer\n");
     return 0;
   }
   else if (!strcmp(problem_name, "emwave")) {
@@ -183,6 +192,11 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
   }
   else if (!strcmp(problem_name, "beltrami")) {
     sim->initial_data = initial_data_beltrami;
+    sim->flag_ohms_law = FFE_OHMS_LAW_FORCE_FREE;
+    return 0;
+  }
+  else if (!strcmp(problem_name, "clayer")) {
+    sim->initial_data = initial_data_clayer;
     sim->flag_ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     return 0;
   }
@@ -331,7 +345,8 @@ void ffe_sim_advance_rk(struct ffe_sim *sim, int RKstep)
     double J[4] = { 0, 0, 0, 0 };
     double F[4] = { 0, 0, 0, 0 };
 
-    ffe_ohms_law(sim->flag_ohms_law, &E[m], rotE, divE, &B[m], rotB, divB, J);
+    ffe_ohms_law(sim->flag_ohms_law, sim->damping_timescale,
+		 &E[m], rotE, divE, &B[m], rotB, divB, J);
 
     F[1] = -S1(P); /* (minus) grad-psi = magnetic current */
     F[2] = -S2(P);
@@ -575,9 +590,21 @@ void ffe_sim_write_checkpoint(struct ffe_sim *sim, const char *base_name)
 	     base_name);
   }
 
+  cow_dfield *jcurrent = cow_dfield_new();
+  cow_dfield_setdomain(jcurrent, sim->domain);
+  cow_dfield_setname(jcurrent, "electric_current");
+  cow_dfield_addmember(jcurrent, "J1");
+  cow_dfield_addmember(jcurrent, "J2");
+  cow_dfield_addmember(jcurrent, "J3");
+  cow_dfield_commit(jcurrent);
+  cow_fft_curl(sim->magnetic[0], jcurrent);
+
+
   cow_dfield_write(sim->electric[0], chkpt_name);
   cow_dfield_write(sim->magnetic[0], chkpt_name);
   cow_dfield_write(sim->psifield[0], chkpt_name);
+  cow_dfield_write(jcurrent, chkpt_name);
+  cow_dfield_del(jcurrent);
 
 
   if (cow_domain_getcartrank(sim->domain) == 0) {
@@ -612,6 +639,7 @@ int main(int argc, char **argv)
   sim.eps_parameter = 0.50; /* [0-1] */
   sim.kreiss_oliger_mode = 'c'; /* TODO: correct means of doing 'fine' */
   sim.pfeiffer_terms = 'f';
+  sim.damping_timescale = -1.0;
   sim.alpha_squared = 1.0;
   sim.fractional_helicity = 1.0; /* [0-1] */
   sim.abc_coefficients[0] = 1.0;
@@ -672,7 +700,12 @@ int main(int argc, char **argv)
   }
 
 
-  if (ffe_sim_problem_setup(&sim, sim.problem_name)) {
+
+  if (invalid_cfg) {
+    cow_finalize();
+    return 0;
+  }
+  else if (ffe_sim_problem_setup(&sim, sim.problem_name)) {
     printf("[ffe] error: unkown problem name: '%s', choose one of\n",
 	   sim.problem_name);
     ffe_sim_problem_setup(NULL, NULL);
