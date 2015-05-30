@@ -189,8 +189,8 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode);
 
 #define DOT(E,B) ((E)[1]*(B)[1] + (E)[2]*(B)[2] + (E)[3]*(B)[3])
 
-#define MAX3(a,b,c) (a>b && b>c ? a : (b > c ? b : c))
-#define MIN3(a,b,c) (a<b && b<c ? a : (b < c ? b : c))
+#define MAX3(a,b,c) (a>=b && b>=c ? a : (b >= c ? b : c))
+#define MIN3(a,b,c) (a<=b && b<=c ? a : (b <= c ? b : c))
 
 
 /* https://einsteintoolkit.org/documentation/ThornDoc/CactusNumerical/Dissipation */
