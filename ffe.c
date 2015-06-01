@@ -198,6 +198,7 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
   else if (!strcmp(problem_name, "clayer")) {
     sim->initial_data = initial_data_clayer;
     sim->flag_ohms_law = FFE_OHMS_LAW_FORCE_FREE;
+    sim->alpha_squared = 16384;
     return 0;
   }
   else {
@@ -590,22 +591,35 @@ void ffe_sim_write_checkpoint(struct ffe_sim *sim, const char *base_name)
 	     base_name);
   }
 
-  cow_dfield *jcurrent = cow_dfield_new();
-  cow_dfield_setdomain(jcurrent, sim->domain);
-  cow_dfield_setname(jcurrent, "electric_current");
-  cow_dfield_addmember(jcurrent, "J1");
-  cow_dfield_addmember(jcurrent, "J2");
-  cow_dfield_addmember(jcurrent, "J3");
-  cow_dfield_commit(jcurrent);
-  cow_fft_curl(sim->magnetic[0], jcurrent);
-
-
   cow_dfield_write(sim->electric[0], chkpt_name);
   cow_dfield_write(sim->magnetic[0], chkpt_name);
   cow_dfield_write(sim->psifield[0], chkpt_name);
-  cow_dfield_write(jcurrent, chkpt_name);
-  cow_dfield_del(jcurrent);
 
+  if (strchr(sim->write_derived_fields, 'J') != NULL) {
+    cow_dfield *jcurrent = cow_dfield_new();
+    cow_dfield_setdomain(jcurrent, sim->domain);
+    cow_dfield_setname(jcurrent, "electric_current");
+    cow_dfield_addmember(jcurrent, "J1");
+    cow_dfield_addmember(jcurrent, "J2");
+    cow_dfield_addmember(jcurrent, "J3");
+    cow_dfield_commit(jcurrent);
+    cow_fft_curl(sim->magnetic[0], jcurrent);
+    cow_dfield_write(jcurrent, chkpt_name);
+    cow_dfield_del(jcurrent);
+  }
+
+  if (strchr(sim->write_derived_fields, 'A') != NULL) {
+    cow_dfield *vecpoten = cow_dfield_new();
+    cow_dfield_setdomain(vecpoten, sim->domain);
+    cow_dfield_setname(vecpoten, "vector_potential");
+    cow_dfield_addmember(vecpoten, "A1");
+    cow_dfield_addmember(vecpoten, "A2");
+    cow_dfield_addmember(vecpoten, "A3");
+    cow_dfield_commit(vecpoten);
+    cow_fft_inversecurl(sim->magnetic[0], vecpoten);
+    cow_dfield_write(vecpoten, chkpt_name);
+    cow_dfield_del(vecpoten);
+  }
 
   if (cow_domain_getcartrank(sim->domain) == 0) {
     read_write_status(sim, chkpt_name, 'w');
@@ -629,6 +643,10 @@ int main(int argc, char **argv)
 
   memset(sim.output_directory, '\0', 1024);
   memset(sim.problem_name, '\0', 1024);
+  memset(sim.write_derived_fields, '\0', 1024);
+
+  strcpy(sim.output_directory, ".");
+  strcpy(sim.write_derived_fields, "J");
 
   sim.Ni = 128;
   sim.Nj = 128;
@@ -650,7 +668,7 @@ int main(int argc, char **argv)
   sim.num_pspec_bins = 4096;
   sim.max_pspec_bin = 8192;
 
-  strcpy(sim.output_directory, ".");
+
 
 
 
@@ -727,6 +745,9 @@ int main(int argc, char **argv)
     else if (!strncmp(argv[n], "cpi=", 4)) {
       sscanf(argv[n], "cpi=%lf", &sim.time_between_checkpoints);
     }
+    else if (!strncmp(argv[n], "wdf=", 4)) {
+      sscanf(argv[n], "wdf=%1024s", sim.write_derived_fields);
+    }
     else if (!strncmp(argv[n], "N=", 2)) {
       int num = sscanf(argv[n], "N=%d,%d,%d", &sim.Ni, &sim.Nj, &sim.Nk);
       if (num != 3) {
@@ -764,6 +785,9 @@ int main(int argc, char **argv)
 	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
 	invalid_cfg += 1;
       }
+    }
+    else if (!strncmp(argv[n], "tdamp=", 6)) {
+      sscanf(argv[n], "tdamp=%lf", &sim.damping_timescale);
     }
     else if (!strncmp(argv[n], "post=", 5)) {
       int num = sscanf(argv[n], "post=%d,%d,%d,%d",
@@ -805,16 +829,18 @@ int main(int argc, char **argv)
   }
 
   printf("\n-----------------------------------------\n");
-  printf("problem_name ............... %s\n", sim.problem_name);
-  printf("output_directory ........... %s\n", sim.output_directory);
-  printf("tmax ....................... %12.10lf\n", sim.time_final);
-  printf("time_between_checkpoints ... %12.10lf\n", sim.time_between_checkpoints);
+  printf("resolution ................. %d %d %d\n", sim.Ni, sim.Nj, sim.Nk);
   printf("cfl_parameter .............. %12.10lf\n", sim.cfl_parameter);
   printf("eps_parameter .............. %12.10lf\n", sim.eps_parameter);
+  printf("time_between_checkpoints ... %12.10lf\n", sim.time_between_checkpoints);
+  printf("time_final ................. %12.10lf\n", sim.time_final);
+  printf("fractional_helicity ........ %12.10lf\n", sim.fractional_helicity);
+  printf("damping_timescale .......... %12.10lf\n", sim.damping_timescale);
+  printf("alpha_squared .............. %d\n", sim.alpha_squared);
   printf("kriess_oliger_mode ......... %c\n", sim.kreiss_oliger_mode);
   printf("pfeiffer_terms ............. %c\n", sim.pfeiffer_terms);
-  printf("alpha_squared .............. %d\n", sim.alpha_squared);
-  printf("fractional_helicity ........ %12.10lf\n", sim.fractional_helicity);
+  printf("output_directory ........... %s\n", sim.output_directory);
+  printf("problem_name ............... %s\n", sim.problem_name);
   printf("measure_cadence ............ %d\n", sim.measure_cadence);
   printf("analyze_cadence ............ %d\n", sim.analyze_cadence);
   printf("num_pspec_bins ............. %d\n", sim.num_pspec_bins);
@@ -918,10 +944,12 @@ int main(int argc, char **argv)
     sim.status.kzps = 1e-3 * local_grid_size / (stop_cycle - start_cycle) *
       CLOCKS_PER_SEC;
 
-    printf("[ffe] n=%06d t=%6.4e %3.2f kzps\n",
-	   sim.status.iteration,
-	   sim.status.time_simulation,
-	   sim.status.kzps);
+    if (sim.status.iteration % 100 == 0) {
+      printf("[ffe] n=%06d t=%6.4e %3.2f kzps\n",
+	     sim.status.iteration,
+	     sim.status.time_simulation,
+	     sim.status.kzps);
+    }
   }
 
 

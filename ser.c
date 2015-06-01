@@ -120,6 +120,7 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
   ADD_MEM(kreiss_oliger_mode, H5T_C_S1);
   ADD_MEM(pfeiffer_terms, H5T_C_S1);
   ADD_MEM(time_between_checkpoints, H5T_NATIVE_DOUBLE);
+  ADD_MEM(write_derived_fields, h5t_string_1024);
   ADD_MEM(time_final, H5T_NATIVE_DOUBLE);
   ADD_MEM(fractional_helicity, H5T_NATIVE_DOUBLE);
   ADD_MEM(abc_coefficients[0], H5T_NATIVE_DOUBLE);

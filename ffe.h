@@ -60,6 +60,7 @@ struct ffe_sim
   double cfl_parameter; /* Courant number [0.0 - 0.25]*/
   double eps_parameter; /* Kreiss-Oliger parameter [0 - 1] */
   double time_between_checkpoints;
+  char write_derived_fields[1024];
   double time_final;
   double fractional_helicity;
   double abc_coefficients[3];
