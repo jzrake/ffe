@@ -591,6 +591,12 @@ void ffe_sim_write_checkpoint(struct ffe_sim *sim, const char *base_name)
 	     base_name);
   }
 
+  cow_domain_setcollective(sim->domain, sim->io_use_collective);
+  cow_domain_setchunk(sim->domain, sim->io_use_chunked);
+  cow_domain_setalign(sim->domain,
+		      sim->io_align_threshold * 1024,
+		      sim->io_disk_block_size * 1024);
+
   cow_dfield_write(sim->electric[0], chkpt_name);
   cow_dfield_write(sim->magnetic[0], chkpt_name);
   cow_dfield_write(sim->psifield[0], chkpt_name);
@@ -667,7 +673,10 @@ int main(int argc, char **argv)
   sim.analyze_cadence = 100;
   sim.num_pspec_bins = 4096;
   sim.max_pspec_bin = 8192;
-
+  sim.io_use_collective = 1;
+  sim.io_use_chunked = 1;
+  sim.io_align_threshold = 1; /* means no threshold */
+  sim.io_disk_block_size = 1; /* means no alignment */
 
 
 
@@ -800,6 +809,17 @@ int main(int argc, char **argv)
 	invalid_cfg += 1;
       }
     }
+    else if (!strncmp(argv[n], "io=", 3)) {
+      int num = sscanf(argv[n], "io=%d,%d,%d,%d",
+		       &sim.io_use_collective,
+		       &sim.io_use_chunked,
+		       &sim.io_align_threshold,
+		       &sim.io_disk_block_size);
+      if (num != 4) {
+	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
+	invalid_cfg += 1;
+      }
+    }
     else {
       printf("[ffe] error: unrecognized option '%s'\n", argv[n]);
       invalid_cfg += 1;
@@ -845,6 +865,10 @@ int main(int argc, char **argv)
   printf("analyze_cadence ............ %d\n", sim.analyze_cadence);
   printf("num_pspec_bins ............. %d\n", sim.num_pspec_bins);
   printf("max_pspec_bin .............. %d\n", sim.max_pspec_bin);
+  printf("io_use_collective .......... %d\n", sim.io_use_collective);
+  printf("io_use_chunked ............. %d\n", sim.io_use_chunked);
+  printf("io_align_threshold ......... %d\n", sim.io_align_threshold);
+  printf("io_disk_block_size ......... %d\n", sim.io_disk_block_size);
   printf("-----------------------------------------\n\n");
 
 
@@ -944,7 +968,7 @@ int main(int argc, char **argv)
     sim.status.kzps = 1e-3 * local_grid_size / (stop_cycle - start_cycle) *
       CLOCKS_PER_SEC;
 
-    if (sim.status.iteration % 100 == 0) {
+    if (sim.status.iteration % 10 == 0) {
       printf("[ffe] n=%06d t=%6.4e %3.2f kzps\n",
 	     sim.status.iteration,
 	     sim.status.time_simulation,

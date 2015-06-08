@@ -74,6 +74,10 @@ struct ffe_sim
   int analyze_cadence;
   int num_pspec_bins;
   int max_pspec_bin;
+  int io_use_collective;
+  int io_use_chunked;
+  int io_align_threshold;
+  int io_disk_block_size;
 } ;
 
 
