@@ -38,7 +38,7 @@ default : ffe
 	$(CC) $(CFLAGS) $< -c $(HDF5_I) $(FFTW_I) $(RNPL_I)
 
 ffe : $(OBJ) $(COW_LIB)
-	$(CC) $(CFLAGS) $(CLIBS) $^ $(HDF5_L) $(FFTW_L) $(RNPL_L) -o $@
+	$(CC) $(CFLAGS) $^ $(HDF5_L) $(FFTW_L) $(RNPL_L) $(CLIBS) -o $@
 
 $(COW_LIB) : .FORCE
 	$(MAKE) -C cow MAKEFILE_IN=$(MAKEFILE_IN)
