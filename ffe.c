@@ -958,7 +958,7 @@ int main(int argc, char **argv)
      * =================================================================
      */
     if (sim.status.time_simulation - sim.status.time_last_checkpoint >=
-	sim.time_between_checkpoints) {
+	sim.time_between_checkpoints && sim.time_between_checkpoints > 0.0) {
 
       sim.status.time_last_checkpoint += sim.time_between_checkpoints;
       sim.status.checkpoint_number += 1;
@@ -999,22 +999,26 @@ int main(int argc, char **argv)
     sim.status.kzps = 1e-3 * local_grid_size / (stop_cycle - start_cycle) *
       CLOCKS_PER_SEC;
 
-    if (sim.status.iteration % 10 == 0) {
+
+    if (sim.status.iteration % 1 == 0) {
       printf("[ffe] n=%06d t=%6.4e %3.2f kzps\n",
 	     sim.status.iteration,
 	     sim.status.time_simulation,
 	     sim.status.kzps);
+      fflush(stdout);
     }
   }
 
 
-  if (invalid_cfg == 0) {
-    if (sim.time_final == 0.0) {
-      sim.status.checkpoint_number = 0;
-      ffe_sim_write_checkpoint(&sim, NULL);
-    }
-    else {
-      ffe_sim_write_checkpoint(&sim, "final");
+  if (sim.time_between_checkpoints > 0.0) {
+    if (invalid_cfg == 0) {
+      if (sim.time_final == 0.0) {
+	sim.status.checkpoint_number = 0;
+	ffe_sim_write_checkpoint(&sim, NULL);
+      }
+      else {
+	ffe_sim_write_checkpoint(&sim, "final");
+      }
     }
   }
 
