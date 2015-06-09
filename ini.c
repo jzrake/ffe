@@ -89,17 +89,17 @@ void initial_data_beltrami(struct ffe_sim *sim, double x[4], double E[4], double
 
 void initial_data_clayer(struct ffe_sim *sim, double x[4], double E[4], double B[4])
 {
-  double w = 0.01;
-  double dx = 0.0;//5 * w * sin(2 * M_PI * x[2]);
+  double w = pow(sim->alpha_squared, -0.5);
+  double dx = 0.0;//w * sin(2 * M_PI * x[2]);
   double Bz = tanh((x[1] - 0.25 + dx)/w) - tanh((x[1] - 0.75 + dx)/w) - 1.0;
 
   E[1] = 0.0;
-  E[2] = 0.0;
-  E[3] = 0.0;
+  E[2] = sin(4 * M_PI * x[1]) * 1e-4;
+  E[3] = cos(4 * M_PI * x[1]) * 1e-4;
 
   B[1] = 0.0;
-  B[2] = sqrt(1.0 - Bz*Bz) * (x[1] > 0.5 ? 1 : -1);
-  B[3] = Bz;
+  B[3] = sqrt(1.0 - Bz*Bz) * (x[1] > 0.5 ? 1 : -1);
+  B[2] = 1.0*Bz;
 }
 
 

@@ -122,22 +122,13 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   cow_histogram_setfullname(Hr, nname);
 
 
-  cow_histogram *Hi = cow_histogram_new();
-  cow_histogram_setlower(Hi, 0, 1);
-  cow_histogram_setupper(Hi, 0, sim->max_pspec_bin);
-  cow_histogram_setnbins(Hi, 0, sim->num_pspec_bins);
-  cow_histogram_setspacing(Hi, COW_HIST_SPACING_LINEAR);
-  cow_histogram_setnickname(Hi, "helicity-imag");
-  cow_histogram_setfullname(Hi, nname);
-
-
   cow_fft_inversecurl(magnetic, vecpoten);
   cow_fft_curl       (magnetic, jcurrent);
 
 
   cow_fft_pspecvecfield(magnetic, Pb);
   cow_fft_pspecvecfield(electric, Pe);
-  cow_fft_helicityspec(magnetic, Hr, Hi);
+  cow_fft_helicityspec(magnetic, Hr);
 
   int Nt = cow_domain_getnumglobalzones(sim->domain, COW_ALL_DIMS);
   int Ni = cow_domain_getnumlocalzonesinterior(sim->domain, 0);
@@ -146,21 +137,30 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   int si = cow_dfield_getstride(sim->electric[0], 0);
   int sj = cow_dfield_getstride(sim->electric[0], 1);
   int sk = cow_dfield_getstride(sim->electric[0], 2);
+  double *E = (double*) cow_dfield_getdatabuffer(electric);
   double *A = (double*) cow_dfield_getdatabuffer(vecpoten);
   double *B = (double*) cow_dfield_getdatabuffer(magnetic);
+  double *J = (double*) cow_dfield_getdatabuffer(jcurrent);
 
   double htot = 0.0;
+  double mtot = 0.0;
   double utot = 0.0;
+  double etot = 0.0;
 
   FOR_ALL_INTERIOR(Ni, Nj, Nk) {
     int m = INDV(i,j,k);
     htot += DOT(&A[m], &B[m]);
+    mtot += DOT(&J[m], &B[m]);
     utot += DOT(&B[m], &B[m]);
+    etot += DOT(&E[m], &E[m]);
   }
 
   htot = cow_domain_dblsum(domain, htot) / Nt;
+  mtot = cow_domain_dblsum(domain, mtot) / Nt;
   utot = cow_domain_dblsum(domain, utot) / Nt;
-  printf("[main] helicity: Hm=%8.6e Ub/Hm=%8.6e\n", htot, utot/htot/(2*M_PI));
+  etot = cow_domain_dblsum(domain, etot) / Nt;
+  printf("[main] Hm=%8.6e Ub/Hm=%8.6e Hj=%8.6e U=%8.6e\n",
+	 htot, utot/htot/(2*M_PI), mtot, utot+etot);
 
 
 
@@ -180,7 +180,6 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   cow_histogram_del(Pb);
   cow_histogram_del(Pe);
   cow_histogram_del(Hr);
-  cow_histogram_del(Hi);
 
   cow_dfield_del(vecpoten);
   cow_dfield_del(jcurrent);
