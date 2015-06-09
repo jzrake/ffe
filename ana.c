@@ -8,6 +8,30 @@
 
 
 
+int ffe_measure_fscanf(struct ffe_measure *meas, FILE *F)
+{
+  return fscanf(F, "%lf %lf %lf %lf %lfe\n",
+		&meas->time_simulation,
+		&meas->electric_energy,
+		&meas->magnetic_energy,
+		&meas->magnetic_helicity,
+		&meas->magnetic_monopole);
+}
+
+
+
+int ffe_measure_fprintf(struct ffe_measure *meas, FILE *F)
+{
+  return fprintf(F, "%+12.10e %+12.10e %+12.10e %+12.10e %+12.10e\n",
+		 meas->time_simulation,
+		 meas->electric_energy,
+		 meas->magnetic_energy,
+		 meas->magnetic_helicity,
+		 meas->magnetic_monopole);
+}
+
+
+
 /*
  * Carry out measurement diagnostic
  * =====================================================================
@@ -30,10 +54,11 @@ void ffe_sim_measure(struct ffe_sim *sim, struct ffe_measure *meas)
   double *E = cow_dfield_getdatabuffer(sim->electric[0]);
   double *B = cow_dfield_getdatabuffer(sim->magnetic[0]);
 
+  meas->time_simulation = sim->status.time_simulation;
   meas->electric_energy = 0.0;
   meas->magnetic_energy = 0.0;
   meas->magnetic_monopole = 0.0;
-  meas->magnetic_helicity = 0.0; /* TODO */
+  /* meas->magnetic_helicity = 0.0; we assume it was already calculated */
 
   FOR_ALL_INTERIOR(Ni, Nj, Nk) {
 
@@ -59,7 +84,7 @@ void ffe_sim_measure(struct ffe_sim *sim, struct ffe_measure *meas)
 
 
 
-void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
+void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filename)
 {
   cow_domain *domain = sim->domain;
   cow_dfield *electric = sim->electric[0];
@@ -162,6 +187,10 @@ void ffe_sim_analyze(struct ffe_sim *sim, char *filename)
   printf("[main] Hm=%8.6e Ub/Hm=%8.6e Hj=%8.6e U=%8.6e\n",
 	 htot, utot/htot/(2*M_PI), mtot, utot+etot);
 
+
+  if (meas) {
+    meas->magnetic_helicity = htot;
+  }
 
 
   if (filename) {

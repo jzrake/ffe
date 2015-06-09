@@ -1,6 +1,7 @@
 #ifndef FFE_HEADER
 #define FFE_HEADER
 
+#include <stdio.h> /* FILE */
 #include "cow/cow.h"
 
 
@@ -21,6 +22,7 @@ enum FfeSimParameter {
 
 struct ffe_measure
 {
+  double time_simulation;
   double electric_energy;
   double magnetic_energy;
   double magnetic_helicity;
@@ -84,7 +86,7 @@ struct ffe_sim
 
 void ffe_sim_init(struct ffe_sim *sim);
 void ffe_sim_free(struct ffe_sim *sim);
-void ffe_sim_analyze(struct ffe_sim *sim, char *filename);
+void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filename);
 void ffe_sim_measure(struct ffe_sim *sim, struct ffe_measure *meas);
 void ffe_sim_average_rk(struct ffe_sim *sim);
 void ffe_sim_advance_rk(struct ffe_sim *sim, int RKstep);
@@ -93,6 +95,10 @@ void ffe_sim_kreiss_oliger(struct ffe_sim *sim);
 void ffe_sim_initial_data(struct ffe_sim *sim);
 void ffe_sim_write_checkpoint(struct ffe_sim *sim, const char *base_name);
 int  ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name);
+
+
+int ffe_measure_fscanf(struct ffe_measure *meas, FILE *F);
+int ffe_measure_fprintf(struct ffe_measure *meas, FILE *F);
 
 
 /*

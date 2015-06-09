@@ -635,6 +635,38 @@ void ffe_sim_write_checkpoint(struct ffe_sim *sim, const char *base_name)
 
 
 
+static void truncate_logfile(double t, const char *fname)
+{
+  FILE *logf = fopen(fname, "r");
+
+  if (logf == NULL) {
+    printf("[ffe] warning: no existing ffe.dat file\n");
+    return;
+  }
+
+  size_t S = sizeof(struct ffe_measure);
+  int N = 1;
+  struct ffe_measure *measure = (struct ffe_measure *) malloc(S);
+
+  while (ffe_measure_fscanf(&measure[N-1], logf) != EOF) {
+    measure = (struct ffe_measure *) realloc(measure, ++N * S);
+  }
+
+  fclose(logf);
+  logf = fopen(fname, "w");
+
+  for (int n=0; n<N-1; ++n) {
+    if (measure[n].time_simulation <= t) {
+      ffe_measure_fprintf(&measure[n], logf);
+    }
+  }
+
+  fclose(logf);
+  free(measure);
+}
+
+
+
 int main(int argc, char **argv)
 {
   cow_init(0, NULL, 0);
@@ -653,6 +685,12 @@ int main(int argc, char **argv)
 
   strcpy(sim.output_directory, ".");
   strcpy(sim.write_derived_fields, "J");
+
+  measure.time_simulation = 0.0;
+  measure.electric_energy = 0.0; /* just to ensure memory is initialized */
+  measure.magnetic_energy = 0.0;
+  measure.magnetic_monopole = 0.0;
+  measure.magnetic_helicity = 0.0;
 
   sim.Ni = 128;
   sim.Nj = 128;
@@ -675,8 +713,8 @@ int main(int argc, char **argv)
   sim.max_pspec_bin = 8192;
   sim.io_use_collective = 1;
   sim.io_use_chunked = 1;
-  sim.io_align_threshold = 1; /* means no threshold */
-  sim.io_disk_block_size = 1; /* means no alignment */
+  sim.io_align_threshold = 1; /* KB */
+  sim.io_disk_block_size = 1; /* KB */
 
 
 
@@ -886,6 +924,7 @@ int main(int argc, char **argv)
     mkdir(sim.output_directory, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
     if (restarted_run) {
+      truncate_logfile(sim.status.time_simulation, logfile_name);
       logf = fopen(logfile_name, "a");
     }
     else {
@@ -935,21 +974,13 @@ int main(int argc, char **argv)
      */
     int iter = sim.status.iteration;
     if (iter % sim.measure_cadence == 0) ffe_sim_measure(&sim, &measure);
-    if (iter % sim.analyze_cadence == 0) ffe_sim_analyze(&sim, anlfile_name);
+    if (iter % sim.analyze_cadence == 0) ffe_sim_analyze(&sim, &measure, anlfile_name);
 
 
 
     if (cow_domain_getcartrank(sim.domain) == 0) {
-
       FILE *logf = fopen(logfile_name, "a");
-
-      fprintf(logf, "%+12.10e %+12.10e %+12.10e %+12.10e %+12.10e\n",
-	      sim.status.time_simulation,
-	      measure.electric_energy,
-	      measure.magnetic_energy,
-	      measure.magnetic_helicity,
-	      measure.magnetic_monopole);
-
+      ffe_measure_fprintf(&measure, logf);
       fclose(logf);
     }
 
