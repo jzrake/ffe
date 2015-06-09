@@ -95,6 +95,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
 
   char gname[1024];
   char nname[1024];
+  double sim_alpha_value = sqrt(sim->alpha_squared);
+
 
   snprintf(gname, 1024, "spectra-%06d", sim->status.iteration);
   snprintf(nname, 1024, "%12.10e", sim->status.time_simulation);
@@ -147,6 +149,43 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
   cow_histogram_setfullname(Hr, nname);
 
 
+  cow_histogram *alpha_hist = cow_histogram_new();
+  cow_histogram_setlower(alpha_hist, 0, -2 * sim_alpha_value); /* educated guess of extent */
+  cow_histogram_setupper(alpha_hist, 0, +2 * sim_alpha_value);
+  cow_histogram_setnbins(alpha_hist, 0, sim->num_pspec_bins);
+  cow_histogram_setspacing(alpha_hist, COW_HIST_SPACING_LINEAR);
+  cow_histogram_setbinmode(alpha_hist, COW_HIST_BINMODE_COUNTS);
+  cow_histogram_setfullname(alpha_hist, "alpha-hist");
+  cow_histogram_setnickname(alpha_hist, "alpha-hist");
+  cow_histogram_setdomaincomm(alpha_hist, domain);
+  cow_histogram_commit(alpha_hist);
+
+
+  cow_histogram *mup_hist = cow_histogram_new(); /* 1 - cos(theta) */
+  cow_histogram_setlower(mup_hist, 0, 1e-8);
+  cow_histogram_setupper(mup_hist, 0, 1.0);
+  cow_histogram_setnbins(mup_hist, 0, 512);
+  cow_histogram_setspacing(mup_hist, COW_HIST_SPACING_LOG);
+  cow_histogram_setbinmode(mup_hist, COW_HIST_BINMODE_DENSITY);
+  cow_histogram_setfullname(mup_hist, "mup-hist");
+  cow_histogram_setnickname(mup_hist, "mup-hist");
+  cow_histogram_setdomaincomm(mup_hist, domain);
+  cow_histogram_commit(mup_hist);
+
+
+  cow_histogram *mum_hist = cow_histogram_new(); /* 1 + cos(theta) */
+  cow_histogram_setlower(mum_hist, 0, 1e-8);
+  cow_histogram_setupper(mum_hist, 0, 1.0);
+  cow_histogram_setnbins(mum_hist, 0, 512);
+  cow_histogram_setspacing(mum_hist, COW_HIST_SPACING_LOG);
+  cow_histogram_setbinmode(mum_hist, COW_HIST_BINMODE_DENSITY);
+  cow_histogram_setfullname(mum_hist, "mum-hist");
+  cow_histogram_setnickname(mum_hist, "mum-hist");
+  cow_histogram_setdomaincomm(mum_hist, domain);
+  cow_histogram_commit(mum_hist);
+
+
+
   cow_fft_inversecurl(magnetic, vecpoten);
   cow_fft_curl       (magnetic, jcurrent);
 
@@ -174,11 +213,26 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
 
   FOR_ALL_INTERIOR(Ni, Nj, Nk) {
     int m = INDV(i,j,k);
-    htot += DOT(&A[m], &B[m]);
-    mtot += DOT(&J[m], &B[m]);
-    utot += DOT(&B[m], &B[m]);
-    etot += DOT(&E[m], &E[m]);
+
+    double EE = DOT(&E[m], &E[m]);
+    double BB = DOT(&B[m], &B[m]);
+    double AB = DOT(&A[m], &B[m]);
+    double JB = DOT(&J[m], &B[m]);
+    double JJ = DOT(&J[m], &J[m]);
+
+    cow_histogram_addsample1(alpha_hist, JB/BB/(2*M_PI), 1.0);
+    cow_histogram_addsample1(mup_hist, 1 - JB / sqrt(BB * JJ), 1.0);
+    cow_histogram_addsample1(mum_hist, 1 + JB / sqrt(BB * JJ), 1.0);
+
+    htot += AB;
+    mtot += JB;
+    utot += BB;
+    etot += EE;
   }
+
+  cow_histogram_seal(alpha_hist);
+  cow_histogram_seal(mup_hist);
+  cow_histogram_seal(mum_hist);
 
   htot = cow_domain_dblsum(domain, htot) / Nt;
   mtot = cow_domain_dblsum(domain, mtot) / Nt;
@@ -198,6 +252,9 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
     cow_histogram_dumphdf5(Pe, filename, gname);
     cow_histogram_dumphdf5(Pb, filename, gname);
     cow_histogram_dumphdf5(Hr, filename, gname);
+    cow_histogram_dumphdf5(alpha_hist, filename, gname);
+    cow_histogram_dumphdf5(mup_hist, filename, gname);
+    cow_histogram_dumphdf5(mum_hist, filename, gname);
 
     if (0) { /* write derived fields */
       cow_dfield_write(vecpoten, filename);
@@ -209,6 +266,9 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
   cow_histogram_del(Pb);
   cow_histogram_del(Pe);
   cow_histogram_del(Hr);
+  cow_histogram_del(alpha_hist);
+  cow_histogram_del(mup_hist);
+  cow_histogram_del(mum_hist);
 
   cow_dfield_del(vecpoten);
   cow_dfield_del(jcurrent);
