@@ -591,12 +591,6 @@ void ffe_sim_write_checkpoint(struct ffe_sim *sim, const char *base_name)
 	     base_name);
   }
 
-  cow_domain_setcollective(sim->domain, sim->io_use_collective);
-  cow_domain_setchunk(sim->domain, sim->io_use_chunked);
-  cow_domain_setalign(sim->domain,
-		      sim->io_align_threshold * 1024,
-		      sim->io_disk_block_size * 1024);
-
   cow_dfield_write(sim->electric[0], chkpt_name);
   cow_dfield_write(sim->magnetic[0], chkpt_name);
   cow_dfield_write(sim->psifield[0], chkpt_name);
@@ -866,26 +860,6 @@ int main(int argc, char **argv)
 
 
 
-
-
-  ffe_sim_init(&sim);
-
-  if (restarted_run) {
-
-    cow_dfield_read(sim.electric[0], argv[1]);
-    cow_dfield_read(sim.magnetic[0], argv[1]);
-    cow_dfield_read(sim.psifield[0], argv[1]);
-
-  }
-
-  else {
-
-    sim.status.time_last_checkpoint = -sim.time_between_checkpoints;
-    sim.status.checkpoint_number = -1;
-    ffe_sim_initial_data(&sim);
-
-  }
-
   printf("\n-----------------------------------------\n");
   printf("resolution ................. %d %d %d\n", sim.Ni, sim.Nj, sim.Nk);
   printf("cfl_parameter .............. %12.10lf\n", sim.cfl_parameter);
@@ -908,6 +882,33 @@ int main(int argc, char **argv)
   printf("io_align_threshold ......... %d\n", sim.io_align_threshold);
   printf("io_disk_block_size ......... %d\n", sim.io_disk_block_size);
   printf("-----------------------------------------\n\n");
+
+
+
+  ffe_sim_init(&sim);
+
+  cow_domain_setcollective(sim.domain, sim.io_use_collective);
+  cow_domain_setchunk(sim.domain, sim.io_use_chunked);
+  cow_domain_setalign(sim.domain,
+		      sim.io_align_threshold * 1024,
+		      sim.io_disk_block_size * 1024);
+
+
+  if (restarted_run) {
+
+    cow_dfield_read(sim.electric[0], argv[1]);
+    cow_dfield_read(sim.magnetic[0], argv[1]);
+    cow_dfield_read(sim.psifield[0], argv[1]);
+
+  }
+
+  else {
+
+    sim.status.time_last_checkpoint = -sim.time_between_checkpoints;
+    sim.status.checkpoint_number = -1;
+    ffe_sim_initial_data(&sim);
+
+  }
 
 
   int local_grid_size = cow_domain_getnumlocalzonesinterior(sim.domain,
