@@ -127,6 +127,7 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
   ADD_MEM(abc_coefficients[1], H5T_NATIVE_DOUBLE);
   ADD_MEM(abc_coefficients[2], H5T_NATIVE_DOUBLE);
   ADD_MEM(damping_timescale, H5T_NATIVE_DOUBLE);
+  ADD_MEM(perturbation, H5T_NATIVE_DOUBLE);
   ADD_MEM(alpha_squared, H5T_NATIVE_INT);
   ADD_MEM(output_directory, h5t_string_1024);
   ADD_MEM(problem_name, h5t_string_1024);

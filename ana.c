@@ -72,7 +72,6 @@ void ffe_sim_measure(struct ffe_sim *sim, struct ffe_measure *meas)
     meas->electric_energy += 0.5 * EE;
     meas->magnetic_energy += 0.5 * BB;
     meas->magnetic_monopole += fabs(divB);
-
   }
 
   GLB_AVG(meas->electric_energy);
@@ -226,8 +225,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
 
     htot += AB;
     mtot += JB;
-    utot += BB;
-    etot += EE;
+    utot += BB * 0.5;
+    etot += EE * 0.5;
   }
 
   cow_histogram_seal(alpha_hist);
@@ -238,8 +237,7 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
   mtot = cow_domain_dblsum(domain, mtot) / Nt;
   utot = cow_domain_dblsum(domain, utot) / Nt;
   etot = cow_domain_dblsum(domain, etot) / Nt;
-  printf("[main] Hm=%8.6e Ub/Hm=%8.6e Hj=%8.6e U=%8.6e\n",
-	 htot, utot/htot/(2*M_PI), mtot, utot+etot);
+  printf("[meas] Hm=%8.6e U=%8.6e a=%8.6e\n", htot, utot+etot, 2*utot/htot/(2*M_PI));
 
 
   if (meas) {

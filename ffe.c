@@ -696,6 +696,7 @@ int main(int argc, char **argv)
   sim.kreiss_oliger_mode = 'c'; /* TODO: correct means of doing 'fine' */
   sim.pfeiffer_terms = 'f';
   sim.damping_timescale = -1.0;
+  sim.perturbation = 0.0;
   sim.alpha_squared = 1.0;
   sim.fractional_helicity = 1.0; /* [0-1] */
   sim.abc_coefficients[0] = 1.0;
@@ -830,6 +831,9 @@ int main(int argc, char **argv)
     else if (!strncmp(argv[n], "tdamp=", 6)) {
       sscanf(argv[n], "tdamp=%lf", &sim.damping_timescale);
     }
+    else if (!strncmp(argv[n], "pert=", 5)) {
+      sscanf(argv[n], "pert=%lf", &sim.perturbation);
+    }
     else if (!strncmp(argv[n], "post=", 5)) {
       int num = sscanf(argv[n], "post=%d,%d,%d,%d",
 		       &sim.measure_cadence,
@@ -868,6 +872,7 @@ int main(int argc, char **argv)
   printf("time_final ................. %12.10lf\n", sim.time_final);
   printf("fractional_helicity ........ %12.10lf\n", sim.fractional_helicity);
   printf("damping_timescale .......... %12.10lf\n", sim.damping_timescale);
+  printf("perturbation ............... %12.10lf\n", sim.perturbation);
   printf("alpha_squared .............. %d\n", sim.alpha_squared);
   printf("kriess_oliger_mode ......... %c\n", sim.kreiss_oliger_mode);
   printf("pfeiffer_terms ............. %c\n", sim.pfeiffer_terms);

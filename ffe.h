@@ -67,6 +67,7 @@ struct ffe_sim
   double fractional_helicity;
   double abc_coefficients[3];
   double damping_timescale;
+  double perturbation;
   int alpha_squared; /* wave-number (squared) of initial configuration */
   char kreiss_oliger_mode; /* 'c': coarse, 'f': fine 'n': none */
   char pfeiffer_terms; /* 't': true 'f': false */

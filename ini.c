@@ -47,6 +47,10 @@ void initial_data_abc(struct ffe_sim *sim, double x[4], double E[4], double B[4]
   double h = sim->fractional_helicity;
   double alpha = sqrt(sim->alpha_squared) * 2 * M_PI;
 
+  a /= h;
+  b /= h;
+  c /= h;
+
   E[1] = 0.0;
   E[2] = 0.0;
   E[3] = 0.0;
@@ -93,8 +97,8 @@ void initial_data_clayer(struct ffe_sim *sim, double x[4], double E[4], double B
   double By = tanh((x[1] - 0.25)/w) - tanh((x[1] - 0.75)/w) - 1.0;
 
   E[1] = 0.0;
-  E[2] = sin(4 * M_PI * (x[1] + x[2] + x[3])) * 1e-10;
-  E[3] = cos(4 * M_PI * (x[1] + x[2] + x[3])) * 1e-10;
+  E[2] = sin(4 * M_PI * (x[1] + x[2] + x[3])) * sim->perturbation;
+  E[3] = cos(4 * M_PI * (x[1] + x[2] + x[3])) * sim->perturbation;
 
   B[1] = 0.0;
   B[2] = By;
