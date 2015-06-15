@@ -3,12 +3,11 @@
 
 
 #if (COW_HDF5)
-
 #include <hdf5.h>
-
 static int read_old_h5type(hid_t src_dset, hid_t dst_type, void *dst_data,
 			   const char *type_name);
-
+static int read_write_kernel(hid_t h5f, hid_t h5s, hid_t h5t,
+			     char mode, char *name, void *data);
 #endif
 
 
@@ -32,7 +31,6 @@ int read_write_status(struct ffe_sim *sim, const char *chkpt_name, char mode)
   hid_t h5f = H5Fopen(chkpt_name, H5F_ACC_RDWR, H5P_DEFAULT);
   hid_t h5s = H5Screate(H5S_SCALAR);
   hid_t h5t = H5Tcreate(H5T_COMPOUND, sizeof(struct ffe_status));
-  hid_t h5d = -1;
 
   ADD_MEM(iteration, H5T_NATIVE_INT);
   ADD_MEM(checkpoint_number, H5T_NATIVE_INT);
@@ -41,48 +39,8 @@ int read_write_status(struct ffe_sim *sim, const char *chkpt_name, char mode)
   ADD_MEM(time_last_checkpoint, H5T_NATIVE_DOUBLE);
   ADD_MEM(kzps, H5T_NATIVE_DOUBLE);
 
+  error = read_write_kernel(h5f, h5s, h5t, mode, "status", &sim->status);
 
-  if (mode == 'w') {
-
-    if (H5Lexists(h5f, "status", H5P_DEFAULT)) {
-      H5Ldelete(h5f, "status", H5P_DEFAULT);
-    }
-
-    h5d = H5Dcreate(h5f, "status", h5t, h5s, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(h5d, h5t, H5S_ALL, H5S_ALL, H5P_DEFAULT, &sim->status);
-
-    error = 0;
-  }
-
-  else if (mode == 'r') {
-
-    h5d = H5Dopen(h5f, "status", H5P_DEFAULT);
-
-    hid_t src_type = H5Dget_type(h5d);
-
-    if (H5Tequal(src_type, h5t) <= 0) {
-
-      printf("[ser] warning: checkpoint 'status' out of date\n");
-
-      if (read_old_h5type(h5d, h5t, &sim->status, "status")) {
-	printf("[ser] error: checkpoint 'status' could not be read\n");
-      }
-      else {
-	error = 0; /* success */
-      }
-
-    }
-    else {
-      H5Dread(h5d, h5t, H5S_ALL, H5S_ALL, H5P_DEFAULT, &sim->status);
-      error = 0; /* success */
-    }
-
-    H5Tclose(src_type);
-
-  }
-
-
-  H5Dclose(h5d);
   H5Tclose(h5t);
   H5Sclose(h5s);
   H5Fclose(h5f);
@@ -110,7 +68,6 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
   hid_t h5f = H5Fopen(chkpt_name, H5F_ACC_RDWR, H5P_DEFAULT);
   hid_t h5s = H5Screate(H5S_SCALAR);
   hid_t h5t = H5Tcreate(H5T_COMPOUND, sizeof(struct ffe_sim));
-  hid_t h5d = -1;
 
   ADD_MEM(Ni, H5T_NATIVE_INT);
   ADD_MEM(Nj, H5T_NATIVE_INT);
@@ -136,46 +93,9 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
   ADD_MEM(num_pspec_bins, H5T_NATIVE_INT);
   ADD_MEM(max_pspec_bin, H5T_NATIVE_INT);
 
-  if (mode == 'w') {
-
-    if (H5Lexists(h5f, "sim", H5P_DEFAULT)) {
-      H5Ldelete(h5f, "sim", H5P_DEFAULT);
-    }
-
-    h5d = H5Dcreate(h5f, "sim", h5t, h5s, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-    H5Dwrite(h5d, h5t, H5S_ALL, H5S_ALL, H5P_DEFAULT, sim);
-    error = 0;
-  }
-
-  else if (mode == 'r') {
-
-    h5d = H5Dopen(h5f, "sim", H5P_DEFAULT);
-
-    hid_t src_type = H5Dget_type(h5d);
-
-    if (H5Tequal(src_type, h5t) <= 0) {
-
-      printf("[ser] warning: checkpoint 'sim' out of date\n");
-
-      if (read_old_h5type(h5d, h5t, sim, "sim")) {
-	printf("[ser] error: checkpoint 'sim' could not be read\n");
-      }
-      else {
-	error = 0; /* success */
-      }
-
-    }
-    else {
-      H5Dread(h5d, h5t, H5S_ALL, H5S_ALL, H5P_DEFAULT, sim);
-      error = 0; /* success */
-    }
-
-    H5Tclose(src_type);
-
-  }
+  error = read_write_kernel(h5f, h5s, h5t, mode, "sim", sim);
 
   H5Tclose(h5t_string_1024);
-  H5Dclose(h5d);
   H5Tclose(h5t);
   H5Sclose(h5s);
   H5Fclose(h5f);
@@ -192,10 +112,9 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
 
 #if (COW_HDF5)
 
-static int read_old_h5type(hid_t src_dset, hid_t dst_type, void *dst_data,
-			   const char *type_name)
+int read_old_h5type(hid_t src_dset, hid_t dst_type, void *dst_data,
+		    const char *type_name)
 {
-
   hid_t src_type = H5Dget_type(src_dset);
   int dst_nmembers = H5Tget_nmembers(dst_type);
   int src_nmembers = H5Tget_nmembers(src_type);
@@ -260,5 +179,57 @@ static int read_old_h5type(hid_t src_dset, hid_t dst_type, void *dst_data,
 
   return error;
 }
+
+
+
+int read_write_kernel(hid_t h5f, hid_t h5s, hid_t h5t,
+		      char mode, char *name, void *data)
+{
+  hid_t h5d = -1;
+  int error = 1;
+
+  if (mode == 'w') {
+
+    if (H5Lexists(h5f, name, H5P_DEFAULT)) {
+      H5Ldelete(h5f, name, H5P_DEFAULT);
+    }
+
+    h5d = H5Dcreate(h5f, name, h5t, h5s, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
+    H5Dwrite(h5d, h5t, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+
+    error = 0;
+  }
+
+  else if (mode == 'r') {
+
+    h5d = H5Dopen(h5f, name, H5P_DEFAULT);
+
+    hid_t src_type = H5Dget_type(h5d);
+
+    if (H5Tequal(src_type, h5t) <= 0) {
+
+      printf("[ser] warning: checkpoint '%s' out of date\n", name);
+
+      if (read_old_h5type(h5d, h5t, data, "status")) {
+	printf("[ser] error: checkpoint '%s' could not be read\n", name);
+      }
+      else {
+	error = 0; /* success */
+      }
+
+    }
+    else {
+      H5Dread(h5d, h5t, H5S_ALL, H5S_ALL, H5P_DEFAULT, data);
+      error = 0; /* success */
+    }
+
+    H5Tclose(src_type);
+
+  }
+
+  H5Dclose(h5d);
+  return error;
+}
+
 
 #endif
