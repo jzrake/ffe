@@ -41,6 +41,18 @@ struct ffe_status
 } ;
 
 
+struct ffe_particle
+{
+  int id;
+  double e;
+  double m;
+  double x[4];
+  double u[4];
+  double E[4];
+  double B[4];
+} ;
+
+
 struct ffe_sim
 {
   /* used by physics algorithm */
@@ -49,6 +61,7 @@ struct ffe_sim
   cow_dfield *magnetic[6];
   cow_dfield *psifield[6]; /* 0,1: P, 4-6: dtP (Dedner psi field) */
   struct ffe_status status;
+  struct ffe_particle *particles;
 
 
   /* set by problem type */
@@ -73,14 +86,21 @@ struct ffe_sim
   char pfeiffer_terms; /* 't': true 'f': false */
   char output_directory[1024];
   char problem_name[1024];
+
+  /* analysis options (e.g. post=1,100,4096,8192) */
   int measure_cadence;
   int analyze_cadence;
   int num_pspec_bins;
   int max_pspec_bin;
+
+  /* IO options (e.g. io=1,1,1,1) */
   int io_use_collective;
   int io_use_chunked;
-  int io_align_threshold;
-  int io_disk_block_size;
+  int io_align_threshold; /* KB */
+  int io_disk_block_size; /* KB */
+
+  /* tracer particles */
+  int num_particles;
 } ;
 
 
@@ -97,6 +117,8 @@ void ffe_sim_initial_data(struct ffe_sim *sim);
 void ffe_sim_write_checkpoint(struct ffe_sim *sim, const char *base_name);
 int  ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name);
 
+void ffe_par_move(struct ffe_sim *sim);
+void ffe_par_sample(struct ffe_sim *sim);
 
 int ffe_measure_fscanf(struct ffe_measure *meas, FILE *F);
 int ffe_measure_fprintf(struct ffe_measure *meas, FILE *F);

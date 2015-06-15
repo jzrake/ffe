@@ -117,6 +117,8 @@ void ffe_sim_init(struct ffe_sim *sim)
   cow_domain_setguard(sim->domain, FFE_NG);
   cow_domain_commit(sim->domain);
 
+
+
   for (int n=0; n<6; ++n) {
     sim->electric[n] = cow_dfield_new();
     sim->magnetic[n] = cow_dfield_new();
@@ -142,6 +144,30 @@ void ffe_sim_init(struct ffe_sim *sim)
     cow_dfield_commit(sim->electric[n]);
     cow_dfield_commit(sim->magnetic[n]);
     cow_dfield_commit(sim->psifield[n]);
+  }
+
+
+
+  int np = sim->num_particles / cow_domain_getcartsize(sim->domain);
+  sim->particles = (struct ffe_particle*) malloc(np * sizeof(struct ffe_particle));
+
+
+  for (int n=0; n<np; ++n) {
+    struct ffe_particle *p = &sim->particles[n];
+    p->id = n + np * cow_domain_getcartrank(sim->domain);
+    p->e = 1.0;
+    p->m = 1.0;
+    for (int d=1; d<=3; ++d) {
+      p->x[d] = 0.5;
+      p->u[d] = 0.0;
+      p->E[d] = 0.0;
+      p->B[d] = 0.0;
+    }
+
+    p->u[1] = 1.0;
+    p->u[0] = 1.0 / sqrt(1 - DOT(p->u, p->u));
+    p->x[0] = 0.0;
+
   }
 }
 
@@ -569,6 +595,9 @@ void ffe_sim_advance(struct ffe_sim *sim)
     ffe_sim_kreiss_oliger(sim);
   }
 
+  ffe_par_sample(sim);
+  ffe_par_move(sim);
+
   sim->status.iteration += 1;
   sim->status.time_simulation += dt;
 }
@@ -710,7 +739,7 @@ int main(int argc, char **argv)
   sim.io_use_chunked = 1;
   sim.io_align_threshold = 1; /* KB */
   sim.io_disk_block_size = 1; /* KB */
-
+  sim.num_particles = 1;
 
 
 
