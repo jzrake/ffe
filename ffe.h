@@ -43,7 +43,6 @@ struct ffe_status
 
 struct ffe_particle
 {
-  int id;
   double e;
   double m;
   double x[4];
@@ -62,6 +61,8 @@ struct ffe_sim
   cow_dfield *psifield[6]; /* 0,1: P, 4-6: dtP (Dedner psi field) */
   struct ffe_status status;
   struct ffe_particle *particles;
+  cow_domain *particles_domain;
+  cow_dfield *particles_dfield;
 
 
   /* set by problem type */

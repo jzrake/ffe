@@ -11,7 +11,7 @@ static int move_particle(struct ffe_particle *p, double dt);
 
 void ffe_par_move(struct ffe_sim *sim)
 {
-  int np = sim->num_particles / cow_domain_getcartsize(sim->domain);
+  int np = cow_domain_getnumlocalzonesincguard(sim->particles_domain, 0);
   double dt = sim->status.time_step;
   for (int n=0; n<np; ++n) {
     struct ffe_particle *p = &sim->particles[n];
@@ -26,7 +26,7 @@ void ffe_par_move(struct ffe_sim *sim)
 
 void ffe_par_sample(struct ffe_sim *sim)
 {
-  int np = sim->num_particles / cow_domain_getcartsize(sim->domain);
+  int np = cow_domain_getnumlocalzonesincguard(sim->particles_domain, 0);
 
   double *x = (double *) malloc(3 * np * sizeof(double));
   double *E = NULL;
@@ -41,8 +41,8 @@ void ffe_par_sample(struct ffe_sim *sim)
 
   cow_dfield_setsamplecoords (sim->electric[0], x, np, 3);
   cow_dfield_setsamplecoords (sim->magnetic[0], x, np, 3);
-  cow_dfield_setsamplemode   (sim->electric[0], COW_SAMPLE_NEAREST);
-  cow_dfield_setsamplemode   (sim->magnetic[0], COW_SAMPLE_NEAREST);
+  cow_dfield_setsamplemode   (sim->electric[0], COW_SAMPLE_LINEAR);
+  cow_dfield_setsamplemode   (sim->magnetic[0], COW_SAMPLE_LINEAR);
   cow_dfield_sampleexecute   (sim->electric[0]);
   cow_dfield_sampleexecute   (sim->magnetic[0]);
   cow_dfield_getsampleresult (sim->electric[0], &E, NULL, NULL);

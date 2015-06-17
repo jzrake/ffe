@@ -41,6 +41,10 @@ static void ffe_ohms_law(enum FfeSimParameter flag_ohms_law,
 	J[3] += E[3] / damping_timescale;
       }
 
+      if (DOT(J, E) > 1e-10) {
+	//printf("J.E = %6.4e\n", DOT(J, E));
+      }
+
     }
     break;
   }
@@ -100,7 +104,12 @@ static void enforce_EB_constraints(double E[4], double B[4])
  */
 void ffe_sim_init(struct ffe_sim *sim)
 {
+
+  /* ------------------------------------------------------------------------ */
+  /* We set up a 1d/2d/3d domain for the electromagnetic field */
+  /* ------------------------------------------------------------------------ */
   sim->domain = cow_domain_new();
+
 
 
   sim->grid_spacing[0] = 0.0;
@@ -147,27 +156,60 @@ void ffe_sim_init(struct ffe_sim *sim)
   }
 
 
+  /* ------------------------------------------------------------------------ */
+  /* We set up a 1d domain to hold the particles */
+  /* ------------------------------------------------------------------------ */
+  sim->particles_domain = cow_domain_new();
+  sim->particles_dfield = cow_dfield_new();
 
-  int np = sim->num_particles / cow_domain_getcartsize(sim->domain);
-  sim->particles = (struct ffe_particle*) malloc(np * sizeof(struct ffe_particle));
+  cow_domain_setndim(sim->particles_domain, 1);
+  cow_domain_setsize(sim->particles_domain, 0, sim->num_particles);
+  cow_domain_setguard(sim->particles_domain, 0);
+  cow_domain_commit(sim->particles_domain);
 
+  cow_dfield_setname(sim->particles_dfield, "particles");
+  cow_dfield_setdomain(sim->particles_dfield, sim->particles_domain);
+
+  cow_dfield_addmember(sim->particles_dfield, "e");
+  cow_dfield_addmember(sim->particles_dfield, "m");
+  cow_dfield_addmember(sim->particles_dfield, "x0");
+  cow_dfield_addmember(sim->particles_dfield, "x1");
+  cow_dfield_addmember(sim->particles_dfield, "x2");
+  cow_dfield_addmember(sim->particles_dfield, "x3");
+  cow_dfield_addmember(sim->particles_dfield, "u0");
+  cow_dfield_addmember(sim->particles_dfield, "u1");
+  cow_dfield_addmember(sim->particles_dfield, "u2");
+  cow_dfield_addmember(sim->particles_dfield, "u3");
+  cow_dfield_addmember(sim->particles_dfield, "E0");
+  cow_dfield_addmember(sim->particles_dfield, "E1");
+  cow_dfield_addmember(sim->particles_dfield, "E2");
+  cow_dfield_addmember(sim->particles_dfield, "E3");
+  cow_dfield_addmember(sim->particles_dfield, "B0");
+  cow_dfield_addmember(sim->particles_dfield, "B1");
+  cow_dfield_addmember(sim->particles_dfield, "B2");
+  cow_dfield_addmember(sim->particles_dfield, "B3");
+
+  cow_dfield_commit(sim->particles_dfield);
+
+  sim->particles = (struct ffe_particle *) cow_dfield_getdatabuffer(sim->particles_dfield);
+
+  int np = cow_domain_getnumlocalzonesincguard(sim->particles_domain, 0);
+  srand(cow_domain_getcartrank(sim->particles_domain));
 
   for (int n=0; n<np; ++n) {
     struct ffe_particle *p = &sim->particles[n];
-    p->id = n + np * cow_domain_getcartrank(sim->domain);
     p->e = 1.0;
     p->m = 1.0;
     for (int d=1; d<=3; ++d) {
-      p->x[d] = 0.5;
+      p->x[d] = (double) rand() / RAND_MAX;
       p->u[d] = 0.0;
       p->E[d] = 0.0;
       p->B[d] = 0.0;
     }
 
     p->u[1] = 1.0;
-    p->u[0] = 1.0 / sqrt(1 - DOT(p->u, p->u));
+    p->u[0] = sqrt(1.0 + DOT(p->u, p->u));
     p->x[0] = 0.0;
-
   }
 }
 
@@ -187,6 +229,9 @@ void ffe_sim_free(struct ffe_sim *sim)
   }
 
   cow_domain_del(sim->domain);
+
+  cow_dfield_del(sim->particles_dfield);
+  cow_domain_del(sim->particles_domain);
 }
 
 
@@ -595,7 +640,7 @@ void ffe_sim_advance(struct ffe_sim *sim)
     ffe_sim_kreiss_oliger(sim);
   }
 
-  ffe_par_sample(sim);
+  if (sim->status.iteration % 10 == 0) ffe_par_sample(sim);
   ffe_par_move(sim);
 
   sim->status.iteration += 1;
@@ -619,6 +664,8 @@ void ffe_sim_write_checkpoint(struct ffe_sim *sim, const char *base_name)
 	     sim->output_directory,
 	     base_name);
   }
+
+  cow_dfield_write(sim->particles_dfield, chkpt_name);
 
   cow_dfield_write(sim->electric[0], chkpt_name);
   cow_dfield_write(sim->magnetic[0], chkpt_name);
@@ -739,7 +786,7 @@ int main(int argc, char **argv)
   sim.io_use_chunked = 1;
   sim.io_align_threshold = 1; /* KB */
   sim.io_disk_block_size = 1; /* KB */
-  sim.num_particles = 1;
+  sim.num_particles = 0;
 
 
 
@@ -863,6 +910,9 @@ int main(int argc, char **argv)
     else if (!strncmp(argv[n], "pert=", 5)) {
       sscanf(argv[n], "pert=%lf", &sim.perturbation);
     }
+    else if (!strncmp(argv[n], "particles=", 10)) {
+      sscanf(argv[n], "particles=%d", &sim.num_particles);
+    }
     else if (!strncmp(argv[n], "post=", 5)) {
       int num = sscanf(argv[n], "post=%d,%d,%d,%d",
 		       &sim.measure_cadence,
@@ -915,6 +965,7 @@ int main(int argc, char **argv)
   printf("io_use_chunked ............. %d\n", sim.io_use_chunked);
   printf("io_align_threshold ......... %d\n", sim.io_align_threshold);
   printf("io_disk_block_size ......... %d\n", sim.io_disk_block_size);
+  printf("num_particles .............. %d\n", sim.num_particles);
   printf("-----------------------------------------\n\n");
 
 
@@ -930,6 +981,7 @@ int main(int argc, char **argv)
 
   if (restarted_run) {
 
+    cow_dfield_read(sim.particles_dfield, argv[1]);
     cow_dfield_read(sim.electric[0], argv[1]);
     cow_dfield_read(sim.magnetic[0], argv[1]);
     cow_dfield_read(sim.psifield[0], argv[1]);
