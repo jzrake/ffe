@@ -88,17 +88,20 @@ struct ffe_sim
   char output_directory[1024];
   char problem_name[1024];
 
+
   /* analysis options (e.g. post=1,100,4096,8192) */
   int measure_cadence;
   int analyze_cadence;
   int num_pspec_bins;
   int max_pspec_bin;
 
+
   /* IO options (e.g. io=1,1,1,1) */
   int io_use_collective;
   int io_use_chunked;
   int io_align_threshold; /* KB */
   int io_disk_block_size; /* KB */
+
 
   /* tracer particles */
   int num_particles;
