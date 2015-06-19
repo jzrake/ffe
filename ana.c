@@ -149,8 +149,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
 
 
   cow_histogram *alpha_hist = cow_histogram_new();
-  cow_histogram_setlower(alpha_hist, 0, -2 * sim_alpha_value); /* educated guess of extent */
-  cow_histogram_setupper(alpha_hist, 0, +2 * sim_alpha_value);
+  cow_histogram_setlower(alpha_hist, 0, -8 * sim_alpha_value); /* educated guess of extent */
+  cow_histogram_setupper(alpha_hist, 0, +8 * sim_alpha_value);
   cow_histogram_setnbins(alpha_hist, 0, sim->num_pspec_bins);
   cow_histogram_setspacing(alpha_hist, COW_HIST_SPACING_LINEAR);
   cow_histogram_setbinmode(alpha_hist, COW_HIST_BINMODE_COUNTS);
