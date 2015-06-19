@@ -4,6 +4,7 @@
 #include <time.h>
 #include <sys/stat.h> /* mkdir */
 #include "ffe.h"
+#include "jsw_rand.h"
 
 
 /*
@@ -194,7 +195,7 @@ void ffe_sim_init(struct ffe_sim *sim)
   sim->particles = (struct ffe_particle *) cow_dfield_getdatabuffer(sim->particles_dfield);
 
   int np = cow_domain_getnumlocalzonesincguard(sim->particles_domain, 0);
-  srand(cow_domain_getcartrank(sim->particles_domain));
+  //srand(cow_domain_getcartrank(sim->particles_domain));
 
   for (int n=0; n<np; ++n) {
     struct ffe_particle *p = &sim->particles[n];
@@ -285,6 +286,10 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
  */
 void ffe_sim_initial_data(struct ffe_sim *sim)
 {
+  jsw_rand_t R;
+  jsw_seed(&R, cow_domain_getcartrank(sim->domain));
+
+
   int Ni = cow_domain_getnumlocalzonesinterior(sim->domain, 0);
   int Nj = cow_domain_getnumlocalzonesinterior(sim->domain, 1);
   int Nk = cow_domain_getnumlocalzonesinterior(sim->domain, 2);
@@ -310,6 +315,16 @@ void ffe_sim_initial_data(struct ffe_sim *sim)
 
     sim->initial_data(sim, x, &E[m], &B[m]);
     P[n] = 0.0;
+
+    /* We add a white-noise perturbation to the magnetic field if pert < 0.0 */
+    if (sim->perturbation < 0.0) {
+      double dB1 = jsw_random_double(&R, -1.0, 1.0);
+      double dB2 = jsw_random_double(&R, -1.0, 1.0);
+      double dB3 = jsw_random_double(&R, -1.0, 1.0);
+      B[m+1] += dB1 * sim->perturbation;
+      B[m+2] += dB2 * sim->perturbation;
+      B[m+3] += dB3 * sim->perturbation;
+    }
   }
 
   cow_dfield_syncguard(sim->electric[0]);
