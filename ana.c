@@ -60,7 +60,7 @@ void ffe_sim_measure(struct ffe_sim *sim, struct ffe_measure *meas)
   meas->magnetic_monopole = 0.0;
   /* meas->magnetic_helicity = 0.0; we assume it was already calculated */
 
-  FOR_ALL_INTERIOR(Ni, Nj, Nk) {
+  FOR_ALL_INTERIOR_NO_THREAD(Ni, Nj, Nk) {
 
     int m = INDV(i,j,k);
 
@@ -210,7 +210,7 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
   double utot = 0.0;
   double etot = 0.0;
 
-  FOR_ALL_INTERIOR(Ni, Nj, Nk) {
+  FOR_ALL_INTERIOR_NO_THREAD(Ni, Nj, Nk) {
     int m = INDV(i,j,k);
 
     double EE = DOT(&E[m], &E[m]);

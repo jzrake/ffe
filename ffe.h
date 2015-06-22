@@ -105,6 +105,10 @@ struct ffe_sim
 
   /* tracer particles */
   int num_particles;
+
+
+  /* parallel options */
+  int omp_num_threads;
 } ;
 
 
@@ -159,6 +163,13 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode);
  * =====================================================================
  */
 #define FOR_ALL_INTERIOR(N1, N2, N3)				\
+  _Pragma("omp parallel for collapse(3)")			\
+  for (int i=N1==1?0:FFE_NG; i<N1+(N1==1?0:FFE_NG); ++i)	\
+    for (int j=N2==1?0:FFE_NG; j<N2+(N2==1?0:FFE_NG); ++j)	\
+      for (int k=N3==1?0:FFE_NG; k<N3+(N3==1?0:FFE_NG); ++k)	\
+
+
+#define FOR_ALL_INTERIOR_NO_THREAD(N1, N2, N3)			\
   for (int i=N1==1?0:FFE_NG; i<N1+(N1==1?0:FFE_NG); ++i)	\
     for (int j=N2==1?0:FFE_NG; j<N2+(N2==1?0:FFE_NG); ++j)	\
       for (int k=N3==1?0:FFE_NG; k<N3+(N3==1?0:FFE_NG); ++k)	\

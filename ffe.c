@@ -1,10 +1,11 @@
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
-#include <time.h>
 #include <sys/stat.h> /* mkdir */
+
 #include "ffe.h"
 #include "jsw_rand.h"
+
 
 
 /*
@@ -310,7 +311,7 @@ void ffe_sim_initial_data(struct ffe_sim *sim)
   double *B = cow_dfield_getdatabuffer(sim->magnetic[0]);
   double *P = cow_dfield_getdatabuffer(sim->psifield[0]);
 
-  FOR_ALL_INTERIOR(Ni, Nj, Nk) {    
+  FOR_ALL_INTERIOR(Ni, Nj, Nk) {
 
     int m = INDV(i,j,k);
     int n = INDS(i,j,k);
@@ -758,11 +759,9 @@ static void truncate_logfile(double t, const char *fname)
 }
 
 
-
 int main(int argc, char **argv)
 {
   cow_init(0, NULL, 0);
-
 
   int invalid_cfg = 0;
   int restarted_run = 0;
@@ -808,6 +807,8 @@ int main(int argc, char **argv)
   sim.io_align_threshold = 1; /* KB */
   sim.io_disk_block_size = 1; /* KB */
   sim.num_particles = 0;
+  sim.omp_num_threads = atoi(getenv("OMP_NUM_THREADS") ?
+			     getenv("OMP_NUM_THREADS") : "8");
 
 
 
@@ -987,7 +988,9 @@ int main(int argc, char **argv)
   printf("io_align_threshold ......... %d\n", sim.io_align_threshold);
   printf("io_disk_block_size ......... %d\n", sim.io_disk_block_size);
   printf("num_particles .............. %d\n", sim.num_particles);
+  printf("omp_num_threads ............ %d\n", sim.omp_num_threads);
   printf("-----------------------------------------\n\n");
+
 
 
 
@@ -1098,15 +1101,13 @@ int main(int argc, char **argv)
      * Evolve the system
      * =================================================================
      */
-    clock_t start_cycle, stop_cycle;
-    start_cycle = clock();
+    void *start_cycle = cow_start_clock();
 
     ffe_sim_advance(&sim);
 
-    stop_cycle = clock();
-    sim.status.kzps = 1e-3 * local_grid_size / (stop_cycle - start_cycle) *
-      CLOCKS_PER_SEC;
+    double seconds = cow_stop_clock(start_cycle);
 
+    sim.status.kzps = 1e-3 * local_grid_size / seconds / sim.omp_num_threads;
 
     if (sim.status.iteration % 1 == 0) {
       printf("[ffe] n=%06d t=%6.4e %3.2f kzps\n",
@@ -1135,7 +1136,4 @@ int main(int argc, char **argv)
   cow_finalize();
   return 0;
 }
-
-
-
 
