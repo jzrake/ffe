@@ -40,10 +40,10 @@ void ffe_sim_measure(struct ffe_sim *sim, struct ffe_measure *meas)
 {
 #define GLB_AVG(x) x = cow_domain_dblsum(sim->domain, x) / Nt
 
+  long long Nt = cow_domain_getnumglobalzones(sim->domain, COW_ALL_DIMS);
   int Ni = cow_domain_getnumlocalzonesinterior(sim->domain, 0);
   int Nj = cow_domain_getnumlocalzonesinterior(sim->domain, 1);
   int Nk = cow_domain_getnumlocalzonesinterior(sim->domain, 2);
-  int Nt = cow_domain_getnumglobalzones(sim->domain, COW_ALL_DIMS);
   int si = cow_dfield_getstride(sim->electric[0], 0);
   int sj = cow_dfield_getstride(sim->electric[0], 1);
   int sk = cow_dfield_getstride(sim->electric[0], 2);
@@ -193,7 +193,7 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
   cow_fft_pspecvecfield(electric, Pe);
   cow_fft_helicityspec(magnetic, Hr);
 
-  int Nt = cow_domain_getnumglobalzones(sim->domain, COW_ALL_DIMS);
+  long long Nt = cow_domain_getnumglobalzones(sim->domain, COW_ALL_DIMS);
   int Ni = cow_domain_getnumlocalzonesinterior(sim->domain, 0);
   int Nj = cow_domain_getnumlocalzonesinterior(sim->domain, 1);
   int Nk = cow_domain_getnumlocalzonesinterior(sim->domain, 2);

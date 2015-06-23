@@ -808,7 +808,7 @@ int main(int argc, char **argv)
   sim.io_disk_block_size = 1; /* KB */
   sim.num_particles = 0;
   sim.omp_num_threads = atoi(getenv("OMP_NUM_THREADS") ?
-			     getenv("OMP_NUM_THREADS") : "8");
+			     getenv("OMP_NUM_THREADS") : "1");
 
 
 
