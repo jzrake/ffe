@@ -763,7 +763,7 @@ int main(int argc, char **argv)
 {
   cow_init(0, NULL, 0);
 
-  int invalid_cfg = 0;
+  int norun_main = 0;
   int restarted_run = 0;
   char logfile_name[1024];
   char anlfile_name[1024];
@@ -838,10 +838,10 @@ int main(int argc, char **argv)
    */
   if (strstr(argv[1], ".h5") != 0) {
    
-    invalid_cfg += read_write_sim(&sim, argv[1], 'r');
-    invalid_cfg += read_write_status(&sim, argv[1], 'r');
+    norun_main += read_write_sim(&sim, argv[1], 'r');
+    norun_main += read_write_status(&sim, argv[1], 'r');
 
-    if (invalid_cfg == 0) {
+    if (norun_main == 0) {
       restarted_run = 1;
     }
   }
@@ -859,7 +859,7 @@ int main(int argc, char **argv)
 
 
 
-  if (invalid_cfg) {
+  if (norun_main) {
     cow_finalize();
     return 0;
   }
@@ -892,7 +892,7 @@ int main(int argc, char **argv)
       int num = sscanf(argv[n], "N=%d,%d,%d", &sim.Ni, &sim.Nj, &sim.Nk);
       if (num != 3) {
 	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
-	invalid_cfg += 1;
+	norun_main += 1;
       }
     }
     else if (!strncmp(argv[n], "outdir=", 7)) {
@@ -923,7 +923,7 @@ int main(int argc, char **argv)
 		       &sim.abc_coefficients[2]);
       if (num != 3) {
 	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
-	invalid_cfg += 1;
+	norun_main += 1;
       }
     }
     else if (!strncmp(argv[n], "tdamp=", 6)) {
@@ -943,7 +943,7 @@ int main(int argc, char **argv)
 		       &sim.max_pspec_bin);
       if (num != 4) {
 	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
-	invalid_cfg += 1;
+	norun_main += 1;
       }
     }
     else if (!strncmp(argv[n], "io=", 3)) {
@@ -954,12 +954,12 @@ int main(int argc, char **argv)
 		       &sim.io_disk_block_size);
       if (num != 4) {
 	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
-	invalid_cfg += 1;
+	norun_main += 1;
       }
     }
     else {
       printf("[ffe] error: unrecognized option '%s'\n", argv[n]);
-      invalid_cfg += 1;
+      norun_main += 1;
     }
   }
 
@@ -1028,7 +1028,23 @@ int main(int argc, char **argv)
   snprintf(logfile_name, 1024, "%s/ffe.dat"    , sim.output_directory);
   snprintf(anlfile_name, 1024, "%s/analysis.h5", sim.output_directory);
 
-  if (cow_domain_getcartrank(sim.domain) == 0) {
+
+  if (sim.time_final < 0.0) {
+
+    /*
+     * Just run a performance test and exit
+     */
+
+    ffe_perf(&sim);
+    norun_main += 1;
+
+  }
+
+  else if (cow_domain_getcartrank(sim.domain) == 0) {
+
+    /*
+     * Set up the problem directory and output log
+     */
 
     FILE *logf = NULL;
 
@@ -1045,7 +1061,7 @@ int main(int argc, char **argv)
     
     if (logf == NULL) {
       printf("[ffe] error: could not open log file '%s'\n", logfile_name);
-      invalid_cfg += 1;
+      norun_main += 1;
     }
     else {
       fclose(logf);
@@ -1053,10 +1069,11 @@ int main(int argc, char **argv)
   }
 
 
-  /* Propagate any errors to all procs */
-  invalid_cfg += cow_domain_intsum(sim.domain, invalid_cfg);  
 
-  if (invalid_cfg) {
+  /* Propagate any errors to all procs */
+  norun_main += cow_domain_intsum(sim.domain, norun_main);  
+
+  if (norun_main) {
     sim.time_final = 0.0;
   }
 
@@ -1120,7 +1137,7 @@ int main(int argc, char **argv)
 
 
   if (sim.time_between_checkpoints > 0.0) {
-    if (invalid_cfg == 0) {
+    if (norun_main == 0) {
       if (sim.time_final == 0.0) {
 	sim.status.checkpoint_number = 0;
 	ffe_sim_write_checkpoint(&sim, NULL);
