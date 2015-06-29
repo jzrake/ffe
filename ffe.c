@@ -6,7 +6,7 @@
 #include "ffe.h"
 #include "jsw_rand.h"
 
-
+#define SGN(x) (x == 0 ? 0 : (x > 0 ? +1 : -1))
 
 /*
  * Evalute the current based on E, B, and gradients
@@ -19,71 +19,105 @@ static void ffe_ohms_law(enum FfeSimParameter flag_ohms_law,
 {
   switch (flag_ohms_law) {
 
-  case FFE_OHMS_LAW_VACUUM:
+  case FFE_OHMS_LAW_VACUUM: {
     J[1] = 0.0;
     J[2] = 0.0;
     J[3] = 0.0;
+  }
     break;
-  case FFE_OHMS_LAW_FORCE_FREE: /* eqn 11: Pfeiffer (2013) */
-    {
-      double S[4] = CROSS(E, B);
-      double B2 = DOT(B, B);
-      double Jb = DOT(B, rotB) - DOT(E, rotE);
-      double Js = divE;
 
-      if (B2 < 1e-12) B2 = 1e-12; /* Don't divide by zero! */
+  case FFE_OHMS_LAW_FORCE_FREE: { /* eqn 11: Pfeiffer (2013) */
 
-      J[1] = (B[1] * Jb + S[1] * Js) / B2;
-      J[2] = (B[2] * Jb + S[2] * Js) / B2;
-      J[3] = (B[3] * Jb + S[3] * Js) / B2;
+    double S[4] = CROSS(E, B);
+    double B2 = DOT(B, B);
+    double Jb = DOT(B, rotB) - DOT(E, rotE);
+    double Js = divE;
 
-      if (damping_timescale > 0.0) {
-	J[1] += E[1] / damping_timescale;
-	J[2] += E[2] / damping_timescale;
-	J[3] += E[3] / damping_timescale;
-      }
+    if (B2 < 1e-12) B2 = 1e-12; /* Don't divide by zero! */
 
-      if (DOT(J, E) > 1e-10) {
-	//printf("J.E = %6.4e\n", DOT(J, E));
-      }
+    J[1] = (B[1] * Jb + S[1] * Js) / B2;
+    J[2] = (B[2] * Jb + S[2] * Js) / B2;
+    J[3] = (B[3] * Jb + S[3] * Js) / B2;
 
-    }
+    /* if (damping_timescale > 0.0) { */
+    /* 	J[1] += E[1] / damping_timescale; */
+    /* 	J[2] += E[2] / damping_timescale; */
+    /* 	J[3] += E[3] / damping_timescale; */
+    /* } */
+    /* if (DOT(J, E) > 1e-10) { */
+    /* 	//printf("J.E = %6.4e\n", DOT(J, E)); */
+    /* } */
+  }
+    break;
+
+
+  case FFE_OHMS_LAW_RESISTIVE: {
+
+    double S[4] = CROSS(E, B);
+
+    double B2 = DOT(B, B);
+    double E2 = DOT(E, E);
+    double EB = DOT(E, B);
+
+    double B02 = 0.5 * (B2 - E2 + sqrt((B2 - E2) * (B2 - E2) + 4 * EB * EB));
+    double E02 = B02 - (B2 - E2);
+
+    double B0 = SGN(EB) * sqrt(B02);
+    double E0 = sqrt(E02);
+    double A = sqrt((B2 + E02) / (B02 + E02));
+    double sig = 1.0 / damping_timescale;
+
+    J[1] = (divE * S[1] + A * sig * E0 * (B0 * B[1] + E0 * E[1])) / (B2 + E02);
+    J[2] = (divE * S[2] + A * sig * E0 * (B0 * B[2] + E0 * E[2])) / (B2 + E02);
+    J[3] = (divE * S[3] + A * sig * E0 * (B0 * B[3] + E0 * E[3])) / (B2 + E02);
+
+  }
     break;
   }
 }
 
 
 
-static void enforce_EB_constraints(double E[4], double B[4])
+static void enforce_EB_constraints(double E[4], double B[4], int ohms_law)
 {
-    /*
-     * Subtract out the component of E parallel to B
-     */
-    double BB = DOT(B, B);
-    double EB = DOT(E, B);
+  /*
+   * Subtract out the component of E parallel to B
+   */
+  double BB = DOT(B, B);
+  double EB = DOT(E, B);
 
 
+
+  if (ohms_law != FFE_OHMS_LAW_RESISTIVE) {
     E[1] -= EB/BB * B[1];
     E[2] -= EB/BB * B[2];
     E[3] -= EB/BB * B[3];
+  }
 
 
 
+  /*
+   * Cap the electric field vector to ensure E <= B
+   */
+  double EE = DOT(E, E);
 
-    /*
-     * Cap the electric field vector to ensure E <= B
-     */
-    double EE = DOT(E, E);
+  if (EE > BB) {
 
-    if (EE > BB) {
+    double f = sqrt(BB/EE);
 
-      double f = sqrt(BB/EE);
+    /* E[1] *= f; */
+    /* E[2] *= f; */
+    /* E[3] *= f; */
 
+    if (ohms_law != FFE_OHMS_LAW_RESISTIVE) {
       E[1] *= f;
       E[2] *= f;
       E[3] *= f;
-
     }
+    else {
+      printf("[ffe] WARNING! permitting E > B\n");
+    }
+  }
 }
 
 
@@ -267,7 +301,9 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
   }
   else if (!strcmp(problem_name, "abc")) {
     sim->initial_data = initial_data_abc;
+    printf("!!!! WARNING over-riding Ohm's law to RESISTIVE\n");
     sim->flag_ohms_law = FFE_OHMS_LAW_FORCE_FREE;
+    //sim->flag_ohms_law = FFE_OHMS_LAW_RESISTIVE;
     return 0;
   }
   else if (!strcmp(problem_name, "beltrami")) {
@@ -407,7 +443,7 @@ void ffe_sim_advance_rk(struct ffe_sim *sim, int RKstep)
 
     P[n] = P0[n] + dt * RKparam * dtP[n];
 
-    enforce_EB_constraints(&E[m], &B[m]);
+    enforce_EB_constraints(&E[m], &B[m], sim->flag_ohms_law);
   }
 
 
@@ -562,7 +598,7 @@ void ffe_sim_kreiss_oliger(struct ffe_sim *sim)
 
     P[n] -= eps * KO_const * dP[n];
 
-    enforce_EB_constraints(&E[m], &B[m]);
+    enforce_EB_constraints(&E[m], &B[m], sim->flag_ohms_law);
   }
 
 
@@ -629,7 +665,7 @@ void ffe_sim_average_rk(struct ffe_sim *sim)
 
     P[n] += dt/6 * (dtP0[n] + 2*dtP1[n] + 2*dtP2[n] + dtP3[n]);
 
-    enforce_EB_constraints(&E[m], &B[m]);
+    enforce_EB_constraints(&E[m], &B[m], sim->flag_ohms_law);
   }
 
 

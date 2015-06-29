@@ -16,7 +16,8 @@ typedef void (*InitialDataFunction)(struct ffe_sim *sim, double x[4], double E[4
 
 enum FfeSimParameter {
   FFE_OHMS_LAW_VACUUM,
-  FFE_OHMS_LAW_FORCE_FREE
+  FFE_OHMS_LAW_FORCE_FREE,
+  FFE_OHMS_LAW_RESISTIVE
 } ;
 
 
