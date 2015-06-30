@@ -74,6 +74,7 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
   ADD_MEM(Nk, H5T_NATIVE_INT);
   ADD_MEM(cfl_parameter, H5T_NATIVE_DOUBLE);
   ADD_MEM(eps_parameter, H5T_NATIVE_DOUBLE);
+  ADD_MEM(ohms_law, H5T_C_S1);
   ADD_MEM(kreiss_oliger_mode, H5T_C_S1);
   ADD_MEM(pfeiffer_terms, H5T_C_S1);
   ADD_MEM(time_between_checkpoints, H5T_NATIVE_DOUBLE);

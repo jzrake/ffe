@@ -20,7 +20,6 @@ def load_tseries_data(rundir, recache=False, tmin=0.01, tmax=None):
     else:
         print "no pickle, caching data"
 
-
     h5f = h5py.File("%s/analysis.h5" % rundir, 'r')
     ffe_dat = np.loadtxt("%s/ffe.dat"% rundir)
 
@@ -33,22 +32,28 @@ def load_tseries_data(rundir, recache=False, tmin=0.01, tmax=None):
 
     k_E, k_B, k_H = k_X['electric'], k_X['magnetic'], k_X['helicity']
 
-    for group in h5f:
 
-        ti = float(h5f[group]['magnetic'].attrs['fullname'])
-        if tmin is not None and ti < tmin: continue
-        if tmax is not None and ti > tmax: continue
+    # for group in h5f:
 
-        print group, ti
-        tk.append(ti)
+    #     try:
+    #         ti = float(h5f[group]['magnetic'].attrs['fullname'])
+    #     except KeyError as e:
+    #         print group, e
+    #         continue
 
-        for which in k_X:
-            try:
-                k = h5f[group][which]['binlocX'][:]
-                P = h5f[group][which]['binval' ][:]
-                k_X[which].append( (P * k).mean() / P.mean() )
-            except KeyError as e:
-                print group, e
+    #     if tmin is not None and ti < tmin: continue
+    #     if tmax is not None and ti > tmax: continue
+
+    #     print group, ti
+    #     tk.append(ti)
+
+    #     for which in k_X:
+    #         try:
+    #             k = h5f[group][which]['binlocX'][:]
+    #             P = h5f[group][which]['binval' ][:]
+    #             k_X[which].append( (P * k).mean() / P.mean() )
+    #         except KeyError as e:
+    #             print group, e
 
     h5f.close()
 
@@ -124,13 +129,15 @@ class TimeSeriesPlot(object):
         self.monopole.set_visible(configuration.get('monopole', False))
         self.ax1.set_xscale('log' if configuration.get('logx', False) else 'linear')
         self.ax1.set_yscale('log' if configuration.get('logy', False) else 'linear')
+        self.ax1.relim(visible_only=True)
+        self.ax1.autoscale_view()
 
 
     def create_configuration(self, user_config):
         user_config.add_boolean("magnetic", True)
         user_config.add_boolean("electric", True)
-        user_config.add_boolean("helicity", True)
-        user_config.add_boolean("monopole", True)
+        user_config.add_boolean("helicity", False)
+        user_config.add_boolean("monopole", False)
         user_config.add_boolean("log x", False, alias='logx')
         user_config.add_boolean("log y", False, alias='logy')
 

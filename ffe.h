@@ -15,9 +15,9 @@ struct ffe_measure;
 typedef void (*InitialDataFunction)(struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 
 enum FfeSimParameter {
-  FFE_OHMS_LAW_VACUUM,
-  FFE_OHMS_LAW_FORCE_FREE,
-  FFE_OHMS_LAW_RESISTIVE
+  FFE_OHMS_LAW_VACUUM = 'v',
+  FFE_OHMS_LAW_FORCE_FREE = 'f',
+  FFE_OHMS_LAW_RESISTIVE = 'r'
 } ;
 
 
@@ -68,7 +68,6 @@ struct ffe_sim
 
   /* set by problem type */
   double grid_spacing[4];
-  enum FfeSimParameter flag_ohms_law;
   InitialDataFunction initial_data;
 
 
@@ -84,6 +83,7 @@ struct ffe_sim
   double damping_timescale;
   double perturbation;
   int alpha_squared; /* wave-number (squared) of initial configuration */
+  char ohms_law;
   char kreiss_oliger_mode; /* 'c': coarse, 'f': fine 'n': none */
   char pfeiffer_terms; /* 't': true 'f': false */
   char output_directory[1024];

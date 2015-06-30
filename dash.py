@@ -254,7 +254,7 @@ class MainWindow(wx.Frame):
         panel.canvas = canvas
         panel.navbar = navbar
         panel.button_refresh = wx.Button(panel, label="Refresh directories")
-        panel.button_recache = wx.Button(panel, label="Recache currrent run")
+        panel.button_recache = wx.Button(panel, label="Recache current run")
         panel.radio_plots = wx.RadioBox(panel, label="", choices=self.plots.keys(),
                                         style=wx.RA_SPECIFY_ROWS)
 

@@ -12,19 +12,20 @@
  * Evalute the current based on E, B, and gradients
  * =====================================================================
  */
-static void ffe_ohms_law(enum FfeSimParameter flag_ohms_law,
+static void ffe_ohms_law(char ohms_law,
 			 double damping_timescale,
 			 double E[4], double rotE[4], double divE,
 			 double B[4], double rotB[4], double divB, double J[4])
 {
-  switch (flag_ohms_law) {
+  switch (ohms_law) {
 
   case FFE_OHMS_LAW_VACUUM: {
     J[1] = 0.0;
     J[2] = 0.0;
     J[3] = 0.0;
-  }
     break;
+  }
+
 
   case FFE_OHMS_LAW_FORCE_FREE: { /* eqn 11: Pfeiffer (2013) */
 
@@ -39,16 +40,8 @@ static void ffe_ohms_law(enum FfeSimParameter flag_ohms_law,
     J[2] = (B[2] * Jb + S[2] * Js) / B2;
     J[3] = (B[3] * Jb + S[3] * Js) / B2;
 
-    /* if (damping_timescale > 0.0) { */
-    /* 	J[1] += E[1] / damping_timescale; */
-    /* 	J[2] += E[2] / damping_timescale; */
-    /* 	J[3] += E[3] / damping_timescale; */
-    /* } */
-    /* if (DOT(J, E) > 1e-10) { */
-    /* 	//printf("J.E = %6.4e\n", DOT(J, E)); */
-    /* } */
-  }
     break;
+  }
 
 
   case FFE_OHMS_LAW_RESISTIVE: {
@@ -71,7 +64,13 @@ static void ffe_ohms_law(enum FfeSimParameter flag_ohms_law,
     J[2] = (divE * S[2] + A * sig * E0 * (B0 * B[2] + E0 * E[2])) / (B2 + E02);
     J[3] = (divE * S[3] + A * sig * E0 * (B0 * B[3] + E0 * E[3])) / (B2 + E02);
 
+    break;
   }
+  default:
+    printf("[ffe] WARNING! unknown Ohm's law\n");
+    J[1] = 0.0;
+    J[2] = 0.0;
+    J[3] = 0.0;
     break;
   }
 }
@@ -80,6 +79,12 @@ static void ffe_ohms_law(enum FfeSimParameter flag_ohms_law,
 
 static void enforce_EB_constraints(double E[4], double B[4], int ohms_law)
 {
+
+  if (ohms_law == FFE_OHMS_LAW_RESISTIVE) {
+    return;
+  }
+
+
   /*
    * Subtract out the component of E parallel to B
    */
@@ -105,20 +110,12 @@ static void enforce_EB_constraints(double E[4], double B[4], int ohms_law)
 
     double f = sqrt(BB/EE);
 
-    /* E[1] *= f; */
-    /* E[2] *= f; */
-    /* E[3] *= f; */
-
-    if (ohms_law != FFE_OHMS_LAW_RESISTIVE) {
-      E[1] *= f;
-      E[2] *= f;
-      E[3] *= f;
-    }
-    else {
-      printf("[ffe] WARNING! permitting E > B\n");
-    }
+    E[1] *= f;
+    E[2] *= f;
+    E[3] *= f;
   }
 }
+
 
 
 /*
@@ -127,7 +124,7 @@ static void enforce_EB_constraints(double E[4], double B[4], int ohms_law)
  *
  * -> Ni, Nj, Nk
  * -> initial_data
- * -> flag_ohms_law
+ * -> ohms_law
  * -> time_between_checkpoints
  * -> time_final
  * -> output_directory
@@ -291,29 +288,27 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
   }
   else if (!strcmp(problem_name, "emwave")) {
     sim->initial_data = initial_data_emwave;
-    sim->flag_ohms_law = FFE_OHMS_LAW_VACUUM;
+    sim->ohms_law = FFE_OHMS_LAW_VACUUM;
     return 0;
   }
   else if (!strcmp(problem_name, "alfvenwave")) {
     sim->initial_data = initial_data_alfvenwave;
-    sim->flag_ohms_law = FFE_OHMS_LAW_FORCE_FREE;
+    sim->ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     return 0;
   }
   else if (!strcmp(problem_name, "abc")) {
     sim->initial_data = initial_data_abc;
-    printf("!!!! WARNING over-riding Ohm's law to RESISTIVE\n");
-    sim->flag_ohms_law = FFE_OHMS_LAW_FORCE_FREE;
-    //sim->flag_ohms_law = FFE_OHMS_LAW_RESISTIVE;
+    sim->ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     return 0;
   }
   else if (!strcmp(problem_name, "beltrami")) {
     sim->initial_data = initial_data_beltrami;
-    sim->flag_ohms_law = FFE_OHMS_LAW_FORCE_FREE;
+    sim->ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     return 0;
   }
   else if (!strcmp(problem_name, "clayer")) {
     sim->initial_data = initial_data_clayer;
-    sim->flag_ohms_law = FFE_OHMS_LAW_FORCE_FREE;
+    sim->ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     sim->alpha_squared = 16384;
     return 0;
   }
@@ -443,7 +438,7 @@ void ffe_sim_advance_rk(struct ffe_sim *sim, int RKstep)
 
     P[n] = P0[n] + dt * RKparam * dtP[n];
 
-    enforce_EB_constraints(&E[m], &B[m], sim->flag_ohms_law);
+    enforce_EB_constraints(&E[m], &B[m], sim->ohms_law);
   }
 
 
@@ -476,7 +471,7 @@ void ffe_sim_advance_rk(struct ffe_sim *sim, int RKstep)
     double J[4] = { 0, 0, 0, 0 };
     double F[4] = { 0, 0, 0, 0 };
 
-    ffe_ohms_law(sim->flag_ohms_law, sim->damping_timescale,
+    ffe_ohms_law(sim->ohms_law, sim->damping_timescale,
 		 &E[m], rotE, divE, &B[m], rotB, divB, J);
 
     F[1] = -S1(P); /* (minus) grad-psi = magnetic current */
@@ -598,7 +593,7 @@ void ffe_sim_kreiss_oliger(struct ffe_sim *sim)
 
     P[n] -= eps * KO_const * dP[n];
 
-    enforce_EB_constraints(&E[m], &B[m], sim->flag_ohms_law);
+    enforce_EB_constraints(&E[m], &B[m], sim->ohms_law);
   }
 
 
@@ -665,7 +660,7 @@ void ffe_sim_average_rk(struct ffe_sim *sim)
 
     P[n] += dt/6 * (dtP0[n] + 2*dtP1[n] + 2*dtP2[n] + dtP3[n]);
 
-    enforce_EB_constraints(&E[m], &B[m], sim->flag_ohms_law);
+    enforce_EB_constraints(&E[m], &B[m], sim->ohms_law);
   }
 
 
@@ -685,9 +680,14 @@ void ffe_sim_advance(struct ffe_sim *sim)
   double dx = sim->grid_spacing[1];
   double dy = sim->grid_spacing[2];
   double dz = sim->grid_spacing[3];
-  double dt = sim->cfl_parameter * MIN3(dx,dy,dz);
+  double dt_light = MIN3(dx, dy, dz);
+  double dt_resis = sim->damping_timescale;
 
-  sim->status.time_step = dt;
+  if (sim->ohms_law != FFE_OHMS_LAW_RESISTIVE) {
+    dt_resis = 1.0;
+  }
+
+  sim->status.time_step = sim->cfl_parameter * MIN3(dt_light, dt_resis, 1.0);
 
   ffe_sim_advance_rk(sim, 0);
   ffe_sim_advance_rk(sim, 1);
@@ -703,7 +703,7 @@ void ffe_sim_advance(struct ffe_sim *sim)
   //ffe_par_move(sim);
 
   sim->status.iteration += 1;
-  sim->status.time_simulation += dt;
+  sim->status.time_simulation += sim->status.time_step;
 }
 
 
@@ -821,13 +821,14 @@ int main(int argc, char **argv)
   sim.Ni = 128;
   sim.Nj = 128;
   sim.Nk = 1;
+  sim.ohms_law = FFE_OHMS_LAW_FORCE_FREE;
   sim.time_final = 1.0;
   sim.time_between_checkpoints = 1.0;
   sim.cfl_parameter = 0.10;
   sim.eps_parameter = 0.50; /* [0-1] */
   sim.kreiss_oliger_mode = 'c'; /* TODO: correct means of doing 'fine' */
   sim.pfeiffer_terms = 'f';
-  sim.damping_timescale = -1.0;
+  sim.damping_timescale = 1.0;
   sim.perturbation = 0.0;
   sim.alpha_squared = 1.0;
   sim.fractional_helicity = 1.0; /* [0-1] */
@@ -939,6 +940,9 @@ int main(int argc, char **argv)
     }
     else if (!strncmp(argv[n], "eps=", 4)) {
       sscanf(argv[n], "eps=%lf", &sim.eps_parameter);
+    }
+    else if (!strncmp(argv[n], "ohm=", 4)) {
+      sscanf(argv[n], "ohm=%c", &sim.ohms_law);
     }
     else if (!strncmp(argv[n], "ko=", 3)) {
       sscanf(argv[n], "ko=%c", &sim.kreiss_oliger_mode);
@@ -1163,9 +1167,10 @@ int main(int argc, char **argv)
     sim.status.kzps = 1e-3 * local_grid_size / seconds / sim.omp_num_threads;
 
     if (sim.status.iteration % 1 == 0) {
-      printf("[ffe] n=%06d t=%6.4e %3.2f kzps\n",
+      printf("[ffe] n=%06d t=%6.4e dt=%6.4e %3.2f kzps\n",
 	     sim.status.iteration,
 	     sim.status.time_simulation,
+	     sim.status.time_step,
 	     sim.status.kzps);
       fflush(stdout);
     }
