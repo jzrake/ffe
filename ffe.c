@@ -119,20 +119,7 @@ static void enforce_EB_constraints(double E[4], double B[4], int ohms_law)
 
 
 /*
- * Initialze a new simulation instance. Parameters that need to be initialized
- * before this call:
- *
- * -> Ni, Nj, Nk
- * -> initial_data
- * -> ohms_law
- * -> time_between_checkpoints
- * -> time_final
- * -> output_directory
- * -> eps_parameter
- * -> cfl_parameter
- * -> alpha_squared
- * -> fractional_helicity
- *
+ * Initialze a new simulation instance
  * =====================================================================
  */
 void ffe_sim_init(struct ffe_sim *sim)
@@ -278,6 +265,9 @@ void ffe_sim_free(struct ffe_sim *sim)
 
 int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
 {
+  /* WARNING: This function has problems with the startup order. Any default
+     values set here will override those read from a checkpoint (but not those
+     read from the command line). */
   if (problem_name == NULL) {
     printf("1. emwave\n");
     printf("2. alfvenwave\n");
@@ -288,27 +278,22 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
   }
   else if (!strcmp(problem_name, "emwave")) {
     sim->initial_data = initial_data_emwave;
-    sim->ohms_law = FFE_OHMS_LAW_VACUUM;
     return 0;
   }
   else if (!strcmp(problem_name, "alfvenwave")) {
     sim->initial_data = initial_data_alfvenwave;
-    sim->ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     return 0;
   }
   else if (!strcmp(problem_name, "abc")) {
     sim->initial_data = initial_data_abc;
-    sim->ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     return 0;
   }
   else if (!strcmp(problem_name, "beltrami")) {
     sim->initial_data = initial_data_beltrami;
-    sim->ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     return 0;
   }
   else if (!strcmp(problem_name, "clayer")) {
     sim->initial_data = initial_data_clayer;
-    sim->ohms_law = FFE_OHMS_LAW_FORCE_FREE;
     sim->alpha_squared = 16384;
     return 0;
   }
@@ -873,6 +858,7 @@ int main(int argc, char **argv)
    * Set up the problem defaults
    * ===================================================================
    */
+
   if (strstr(argv[1], ".h5") != 0) {
    
     norun_main += read_write_sim(&sim, argv[1], 'r');
@@ -1015,6 +1001,7 @@ int main(int argc, char **argv)
   printf("damping_timescale .......... %12.10lf\n", sim.damping_timescale);
   printf("perturbation ............... %12.10lf\n", sim.perturbation);
   printf("alpha_squared .............. %d\n", sim.alpha_squared);
+  printf("ohms_law ................... %c\n", sim.ohms_law);
   printf("kriess_oliger_mode ......... %c\n", sim.kreiss_oliger_mode);
   printf("pfeiffer_terms ............. %c\n", sim.pfeiffer_terms);
   printf("output_directory ........... %s\n", sim.output_directory);
