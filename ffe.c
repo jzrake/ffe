@@ -256,7 +256,8 @@ void ffe_sim_free(struct ffe_sim *sim)
   }
 
   cow_domain_del(sim->domain);
-
+  ffe_nle_free(&sim->nle);
+  
   if (sim->particles_dfield) cow_dfield_del(sim->particles_dfield);
   if (sim->particles_domain) cow_domain_del(sim->particles_domain);
 }
@@ -290,6 +291,14 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
   }
   else if (!strcmp(problem_name, "beltrami")) {
     sim->initial_data = initial_data_beltrami;
+    return 0;
+  }
+  else if (!strcmp(problem_name, "nle")) {
+    sim->initial_data = initial_data_nle;
+    ffe_nle_init(&sim->nle);
+    if (cow_domain_getcartrank(sim->domain) == 0) { /* for debugging */
+      ffe_nle_write_table(&sim->nle, "nle.dat");
+    }
     return 0;
   }
   else if (!strcmp(problem_name, "clayer")) {
@@ -796,7 +805,8 @@ int main(int argc, char **argv)
   strcpy(sim.output_directory, ".");
   strcpy(sim.problem_name, "");
   strcpy(sim.write_derived_fields, "J");
-
+  ffe_nle_null(&sim.nle);
+  
   measure.time_simulation = 0.0;
   measure.electric_energy = 0.0; /* just to ensure memory is initialized */
   measure.magnetic_energy = 0.0;
@@ -1105,6 +1115,7 @@ int main(int argc, char **argv)
   }
 
 
+  
   while (sim.status.time_simulation < sim.time_final) {
 
 

@@ -3,7 +3,7 @@
 
 #include <stdio.h> /* FILE */
 #include "cow/cow.h"
-
+#include "nle.h"
 
 
 struct ffe_sim;
@@ -61,6 +61,7 @@ struct ffe_sim
   cow_dfield *magnetic[6];
   cow_dfield *psifield[6]; /* 0,1: P, 4-6: dtP (Dedner psi field) */
   struct ffe_status status;
+  struct ffe_nle nle;
   struct ffe_particle *particles;
   cow_domain *particles_domain;
   cow_dfield *particles_dfield;
@@ -134,7 +135,6 @@ int ffe_measure_fprintf(struct ffe_measure *meas, FILE *F);
 
 void ffe_perf(struct ffe_sim *sim);
 
-int ffe_make_nonlinear_eqilibrium(struct ffe_sim *sim);
 
 
 /*
@@ -145,6 +145,7 @@ void initial_data_emwave    (struct ffe_sim *sim, double x[4], double E[4], doub
 void initial_data_alfvenwave(struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_abc       (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_beltrami  (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
+void initial_data_nle       (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_clayer    (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 
 
