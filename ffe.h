@@ -134,6 +134,9 @@ int ffe_measure_fprintf(struct ffe_measure *meas, FILE *F);
 
 void ffe_perf(struct ffe_sim *sim);
 
+int ffe_make_nonlinear_eqilibrium(struct ffe_sim *sim);
+
+
 /*
  * Initial data library
  * =====================================================================
