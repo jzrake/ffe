@@ -296,9 +296,9 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
   else if (!strcmp(problem_name, "nle")) {
     sim->initial_data = initial_data_nle;
     ffe_nle_init(&sim->nle, sim->nle_order, sim->nle_num_bins, sim->nle_array_size);
-    if (cow_domain_getcartrank(sim->domain) == 0) { /* for debugging */
-      ffe_nle_write_table(&sim->nle, "nle.dat");
-    }
+    //if (cow_domain_getcartrank(sim->domain) == 0) { /* for debugging */
+    //  ffe_nle_write_table(&sim->nle, "nle.dat");
+    //}
     return 0;
   }
   else if (!strcmp(problem_name, "clayer")) {
