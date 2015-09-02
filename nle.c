@@ -27,7 +27,6 @@ void ffe_nle_init(struct ffe_nle *nle, int order, int num_bins, int array_size)
   nle->order = order;
   nle->num_bins = num_bins;
   nle->array_size = array_size;
-
   
   double *Adata = (double*) malloc(N * N * sizeof(double));
   double *Jdata = (double*) malloc(N * N * sizeof(double));
@@ -38,7 +37,7 @@ void ffe_nle_init(struct ffe_nle *nle, int order, int num_bins, int array_size)
   for (int i=0; i<N; ++i) {
     for (int j=0; j<N; ++j) {
 
-#define n (2*nle->order + 1)
+#define n nle->order
 #define c cos
 #define s sin
 #define p pow
@@ -150,7 +149,7 @@ void ffe_nle_sample(struct ffe_nle *nle, double x, double y, double B[4])
   x *= 2 * M_PI;
   y *= 2 * M_PI;
 
-  int m = 2*nle->order + 1;
+  int m = nle->order;
   double C = cos(x) - sin(y);
   double A = pow(C, m);
   

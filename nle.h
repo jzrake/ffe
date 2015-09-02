@@ -6,7 +6,7 @@
  * Data structure that describes the 2D non-linear equilibrium state, where the
  * magnetic potenial function is given by
  *
- *                    Az = (cos(x) - sin(y))^(2*n + 1)
+ *                       Az = (cos(x) - sin(y))^n
  *
  * where the order n is an integer greater than or equal to 0, for which it
  * reduces to the linear ABC field.
