@@ -209,7 +209,8 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
   double mtot = 0.0;
   double utot = 0.0;
   double etot = 0.0;
-
+  double ftot = 0.0; /* Lorentz force squared */
+  
   FOR_ALL_INTERIOR_NO_THREAD(Ni, Nj, Nk) {
     int m = INDV(i,j,k);
 
@@ -218,7 +219,9 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
     double AB = DOT(&A[m], &B[m]);
     double JB = DOT(&J[m], &B[m]);
     double JJ = DOT(&J[m], &J[m]);
-
+    double F[4] = CROSS(&J[m], &B[m]);
+    double FF = DOT(F, F);
+    
     cow_histogram_addsample1(alpha_hist, JB/BB/(2*M_PI), 1.0);
     cow_histogram_addsample1(mup_hist, 1 - JB / sqrt(BB * JJ), 1.0);
     cow_histogram_addsample1(mum_hist, 1 + JB / sqrt(BB * JJ), 1.0);
@@ -227,6 +230,7 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
     mtot += JB;
     utot += BB * 0.5;
     etot += EE * 0.5;
+    ftot += FF;
   }
 
   cow_histogram_seal(alpha_hist);
@@ -237,7 +241,12 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
   mtot = cow_domain_dblsum(domain, mtot) / Nt;
   utot = cow_domain_dblsum(domain, utot) / Nt;
   etot = cow_domain_dblsum(domain, etot) / Nt;
-  printf("[meas] Hm=%8.6e U=%8.6e a=%8.6e\n", htot, utot+etot, 2*utot/htot/(2*M_PI));
+  ftot = cow_domain_dblsum(domain, ftot) / Nt;
+  
+  printf("[meas] Hm=%8.6e U=%8.6e a=%8.6e F=%4.3f\n", htot, utot+etot,
+	 2*utot/htot/(2*M_PI),
+	 sqrt(ftot)/(2*utot)); /* This quantity is |J cross B| / B^2, has
+				  dimensions of inverse length */
 
 
   if (meas) {

@@ -295,7 +295,7 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
   }
   else if (!strcmp(problem_name, "nle")) {
     sim->initial_data = initial_data_nle;
-    ffe_nle_init(&sim->nle);
+    ffe_nle_init(&sim->nle, sim->nle_order, sim->nle_num_bins, sim->nle_array_size);
     if (cow_domain_getcartrank(sim->domain) == 0) { /* for debugging */
       ffe_nle_write_table(&sim->nle, "nle.dat");
     }
@@ -838,6 +838,9 @@ int main(int argc, char **argv)
   sim.io_use_chunked = 1;
   sim.io_align_threshold = 1; /* KB */
   sim.io_disk_block_size = 1; /* KB */
+  sim.nle_order = 1;
+  sim.nle_num_bins = 128;
+  sim.nle_array_size = 1024;
   sim.num_particles = 0;
   sim.omp_num_threads = atoi(getenv("OMP_NUM_THREADS") ?
 			     getenv("OMP_NUM_THREADS") : "1");
@@ -888,20 +891,6 @@ int main(int argc, char **argv)
     sim.status.time_last_checkpoint = 0;
     sim.status.kzps = 0.0;
 
-  }
-
-
-
-  if (norun_main) {
-    cow_finalize();
-    return 0;
-  }
-  else if (ffe_sim_problem_setup(&sim, sim.problem_name)) {
-    printf("[ffe] error: unkown problem name: '%s', choose one of\n",
-	   sim.problem_name);
-    ffe_sim_problem_setup(NULL, NULL);
-    cow_finalize();
-    return 0;
   }
 
 
@@ -993,11 +982,23 @@ int main(int argc, char **argv)
 	norun_main += 1;
       }
     }
+    else if (!strncmp(argv[n], "nle=", 4)) {
+      int num = sscanf(argv[n], "nle=%d,%d,%d",
+		       &sim.nle_order,
+		       &sim.nle_num_bins,
+		       &sim.nle_array_size);
+      if (num != 3) {
+	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
+	norun_main += 1;
+      }
+    }
+
     else {
       printf("[ffe] error: unrecognized option '%s'\n", argv[n]);
       norun_main += 1;
     }
   }
+
 
 
 
@@ -1024,11 +1025,26 @@ int main(int argc, char **argv)
   printf("io_use_chunked ............. %d\n", sim.io_use_chunked);
   printf("io_align_threshold ......... %d\n", sim.io_align_threshold);
   printf("io_disk_block_size ......... %d\n", sim.io_disk_block_size);
+  printf("nle_order .................. %d\n", sim.nle_order);
+  printf("nle_num_bins ............... %d\n", sim.nle_num_bins);
+  printf("nle_array_size ............. %d\n", sim.nle_array_size);
   printf("num_particles .............. %d\n", sim.num_particles);
   printf("omp_num_threads ............ %d\n", sim.omp_num_threads);
   printf("-----------------------------------------\n\n");
 
 
+
+  if (norun_main) {
+    cow_finalize();
+    return 0;
+  }
+  else if (ffe_sim_problem_setup(&sim, sim.problem_name)) {
+    printf("[ffe] error: unkown problem name: '%s', choose one of\n",
+	   sim.problem_name);
+    ffe_sim_problem_setup(NULL, NULL);
+    cow_finalize();
+    return 0;
+  }
 
 
   ffe_sim_init(&sim);

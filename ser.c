@@ -93,7 +93,15 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
   ADD_MEM(analyze_cadence, H5T_NATIVE_INT);
   ADD_MEM(num_pspec_bins, H5T_NATIVE_INT);
   ADD_MEM(max_pspec_bin, H5T_NATIVE_INT);
-
+  ADD_MEM(io_use_collective, H5T_NATIVE_INT);
+  ADD_MEM(io_use_chunked, H5T_NATIVE_INT);
+  ADD_MEM(io_align_threshold, H5T_NATIVE_INT);
+  ADD_MEM(io_disk_block_size, H5T_NATIVE_INT);
+  ADD_MEM(nle_order, H5T_NATIVE_INT);
+  ADD_MEM(nle_num_bins, H5T_NATIVE_INT);
+  ADD_MEM(nle_array_size, H5T_NATIVE_INT);
+  ADD_MEM(num_particles, H5T_NATIVE_INT);
+	  
   error = read_write_kernel(h5f, h5s, h5t, mode, "sim", sim);
 
   H5Tclose(h5t_string_1024);

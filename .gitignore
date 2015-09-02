@@ -6,3 +6,4 @@ ffe
 *.o
 *.dat
 *.h5
+*.pyc

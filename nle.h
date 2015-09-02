@@ -24,7 +24,7 @@ struct ffe_nle
 
 
 void ffe_nle_null(struct ffe_nle *nle);
-void ffe_nle_init(struct ffe_nle *nle);
+void ffe_nle_init(struct ffe_nle *nle, int order, int num_bins, int array_size);
 void ffe_nle_free(struct ffe_nle *nle);
 void ffe_nle_sample(struct ffe_nle *nle, double x, double y, double B[4]);
 void ffe_nle_write_table(struct ffe_nle *nle, const char *fname);

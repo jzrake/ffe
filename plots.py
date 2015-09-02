@@ -32,29 +32,6 @@ def load_tseries_data(rundir, recache=False, tmin=0.01, tmax=None):
 
     k_E, k_B, k_H = k_X['electric'], k_X['magnetic'], k_X['helicity']
 
-
-    # for group in h5f:
-
-    #     try:
-    #         ti = float(h5f[group]['magnetic'].attrs['fullname'])
-    #     except KeyError as e:
-    #         print group, e
-    #         continue
-
-    #     if tmin is not None and ti < tmin: continue
-    #     if tmax is not None and ti > tmax: continue
-
-    #     print group, ti
-    #     tk.append(ti)
-
-    #     for which in k_X:
-    #         try:
-    #             k = h5f[group][which]['binlocX'][:]
-    #             P = h5f[group][which]['binval' ][:]
-    #             k_X[which].append( (P * k).mean() / P.mean() )
-    #         except KeyError as e:
-    #             print group, e
-
     h5f.close()
 
     tk = np.array(tk)
@@ -172,7 +149,10 @@ class SingleImagePlot(object):
         else:
             which = dict(E='electric', B='magnetic', J='electric_current')[field[0]]
             h5f = h5py.File(chkpt, 'r')
-            data = h5f[which][field][...].T
+            if len(h5f[which][field].shape) == 2:
+                data = h5f[which][field][:,:].T
+            else:
+                data = h5f[which][field][:,:,0].T
             h5f.close()
         self.image.set_data(data)
         if not self.fix_clim:

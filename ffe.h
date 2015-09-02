@@ -104,6 +104,12 @@ struct ffe_sim
   int io_align_threshold; /* KB */
   int io_disk_block_size; /* KB */
 
+  
+  /* Non-linear equilibrium options e.g. nle=3,128,1024 */
+  int nle_order;
+  int nle_num_bins;
+  int nle_array_size;
+  
 
   /* tracer particles */
   int num_particles;

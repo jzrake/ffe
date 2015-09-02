@@ -98,6 +98,12 @@ void initial_data_nle(struct ffe_sim *sim, double x[4], double E[4], double B[4]
   E[3] = 0.0;
 
   ffe_nle_sample(&sim->nle, x[1], x[2], B);
+
+  if (sim->perturbation > 0.0) {
+    E[1] = 0.0;
+    E[2] = sin(4 * M_PI * (x[1] + x[2] + x[3])) * sim->perturbation;
+    E[3] = cos(4 * M_PI * (x[1] + x[2] + x[3])) * sim->perturbation;
+  }
 }
 
 void initial_data_clayer(struct ffe_sim *sim, double x[4], double E[4], double B[4])

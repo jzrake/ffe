@@ -7,9 +7,6 @@
 #endif
 
 
-static int order = 1;
-static int num_bins = 256;
-static int array_size = 1024;
 static double Uintegral(double *Adata, double *Jdata, double *Sdata, double A, int N);
 
 
@@ -23,13 +20,14 @@ void ffe_nle_null(struct ffe_nle *nle)
 }
 
 
-void ffe_nle_init(struct ffe_nle *nle)
+void ffe_nle_init(struct ffe_nle *nle, int order, int num_bins, int array_size)
 {
   int N = array_size;
 
   nle->order = order;
   nle->num_bins = num_bins;
   nle->array_size = array_size;
+
   
   double *Adata = (double*) malloc(N * N * sizeof(double));
   double *Jdata = (double*) malloc(N * N * sizeof(double));
@@ -177,7 +175,7 @@ void ffe_nle_write_table(struct ffe_nle *nle, const char *fname)
 {
   FILE *outf = fopen(fname, "w");
   if (outf == NULL) return;
-  for (int n=0; n<num_bins; ++n) {
+  for (int n=0; n<nle->num_bins; ++n) {
     double A = nle->Atable[n];
     double B = nle->Btable[n];
     double U = nle->Utable[n];
