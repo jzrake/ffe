@@ -47,9 +47,9 @@ void initial_data_abc(struct ffe_sim *sim, double x[4], double E[4], double B[4]
   double h = sim->fractional_helicity;
   double alpha = sqrt(sim->alpha_squared) * 2 * M_PI;
 
-  a /= h;
-  b /= h;
-  c /= h;
+  //a /= h;
+  //b /= h;
+  //c /= h;
 
   E[1] = 0.0;
   E[2] = 0.0;
@@ -60,16 +60,20 @@ void initial_data_abc(struct ffe_sim *sim, double x[4], double E[4], double B[4]
   B[3] = 0.0;
 
   B[2] += a * cos(alpha * x[1]);
-  B[3] -= a * sin(alpha * x[1]) * h;
+  B[3] -= a * sin(alpha * x[1]);// * h;
   B[1] += 0.0;
 
   B[3] += b * cos(alpha * x[2]);
-  B[1] -= b * sin(alpha * x[2]) * h;
+  B[1] -= b * sin(alpha * x[2]);// * h;
   B[2] += 0.0;
 
   B[1] += c * cos(alpha * x[3]);
-  B[2] -= c * sin(alpha * x[3]) * h;
+  B[2] -= c * sin(alpha * x[3]);// * h;
   B[3] += 0.0;
+
+  if (fabs(h) < 1e-12 && B[3] < 0.0) {
+    B[3] *= -1;
+  }
 }
 
 void initial_data_beltrami(struct ffe_sim *sim, double x[4], double E[4], double B[4])
