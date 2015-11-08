@@ -303,7 +303,7 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
   }
   else if (!strcmp(problem_name, "clayer")) {
     sim->initial_data = initial_data_clayer;
-    sim->alpha_squared = 16384;
+    //sim->alpha_squared = 16384;
     return 0;
   }
   else {
@@ -354,9 +354,9 @@ void ffe_sim_initial_data(struct ffe_sim *sim)
       double dB1 = jsw_random_double(&R, -1.0, 1.0);
       double dB2 = jsw_random_double(&R, -1.0, 1.0);
       double dB3 = jsw_random_double(&R, -1.0, 1.0);
-      B[m+1] += dB1 * sim->perturbation;
-      B[m+2] += dB2 * sim->perturbation;
-      B[m+3] += dB3 * sim->perturbation;
+      E[m+1] += dB1 * sim->perturbation;
+      E[m+2] += dB2 * sim->perturbation;
+      E[m+3] += dB3 * sim->perturbation;
     }
   }
 

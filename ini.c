@@ -46,11 +46,7 @@ void initial_data_abc(struct ffe_sim *sim, double x[4], double E[4], double B[4]
   double c = sim->abc_coefficients[2];
   double h = sim->fractional_helicity;
   double alpha = sqrt(sim->alpha_squared) * 2 * M_PI;
-
-  //a /= h;
-  //b /= h;
-  //c /= h;
-
+  
   E[1] = 0.0;
   E[2] = 0.0;
   E[3] = 0.0;
@@ -60,17 +56,32 @@ void initial_data_abc(struct ffe_sim *sim, double x[4], double E[4], double B[4]
   B[3] = 0.0;
 
   B[2] += a * cos(alpha * x[1]);
-  B[3] -= a * sin(alpha * x[1]);// * h;
+  B[3] -= a * sin(alpha * x[1]);
   B[1] += 0.0;
 
   B[3] += b * cos(alpha * x[2]);
-  B[1] -= b * sin(alpha * x[2]);// * h;
+  B[1] -= b * sin(alpha * x[2]);
   B[2] += 0.0;
 
   B[1] += c * cos(alpha * x[3]);
-  B[2] -= c * sin(alpha * x[3]);// * h;
+  B[2] -= c * sin(alpha * x[3]);
   B[3] += 0.0;
 
+  double phi = (b*cos(alpha*x[2]) - a*sin(alpha*x[1])) / (a + b);
+  double vz = tanh(phi*4);
+  double gm = 1.0 / sqrt(1 - vz*vz);
+
+  //if (fabs(vz) > 0.95) printf("%f\n", vz);
+  
+  B[1] *= gm;
+  B[2] *= gm;
+  
+  E[1] = +vz * B[2];
+  E[2] = -vz * B[1];
+  E[3] = 0.0;
+
+
+  
   if (fabs(h) < 1e-12 && B[3] < 0.0) {
     B[3] *= -1;
   }
@@ -112,25 +123,18 @@ void initial_data_nle(struct ffe_sim *sim, double x[4], double E[4], double B[4]
 
 void initial_data_clayer(struct ffe_sim *sim, double x[4], double E[4], double B[4])
 {
-  double w = pow(sim->alpha_squared, -0.5);
-  double By = tanh((x[1] - 0.25)/w) - tanh((x[1] - 0.75)/w) - 1.0;
+  double s = sim->fractional_helicity;
+  double a = pow(sim->alpha_squared, -0.5);
+  double phi = 0.0;
 
-  if (sim->perturbation > 0.0) {
-    E[1] = 0.0;
-    E[2] = sin(4 * M_PI * (x[1] + x[2] + x[3])) * sim->perturbation;
-    E[3] = cos(4 * M_PI * (x[1] + x[2] + x[3])) * sim->perturbation;
+  for (int n=1; n<=2*s; ++n) {
+    double t = x[1] - (2*n - 1) / (2*s);
+    phi += 0.5 * M_PI * (1 + tanh(t/a));
   }
-
+  
   B[1] = 0.0;
-  B[2] = By;
-  B[3] = sqrt(1.0 - By*By);
-
-  if (sim->fractional_helicity > 0.0) {
-    B[3] *= (x[1] > 0.5 ? -1 : 1);
-  }
-  if (sim->fractional_helicity < 0.0) {
-    B[3] *= (x[1] > 0.5 ? 1 : -1);
-  }
+  B[2] = cos(phi);
+  B[3] = sin(phi);
 }
 
 

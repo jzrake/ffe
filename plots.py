@@ -82,7 +82,7 @@ class TimeSeriesPlot(object):
         Hm = ffe_dat[:,3]
         Bm = ffe_dat[:,4]
 
-        Ub /= Ub[0]
+        #Ub /= Ub[0]
 
         self.magnetic.set_data(t, Ub)
         self.electric.set_data(t, Ue)
@@ -91,7 +91,7 @@ class TimeSeriesPlot(object):
         self.ax1.relim(visible_only=True)
         self.ax1.autoscale_view()
 
-        
+
     def configure(self, **configuration):
         """Light re-plot; will only issue fast reconfigurations
 
@@ -191,6 +191,69 @@ class SingleImagePlot(object):
                                  'B1', 'B2', 'B3',
                                  'J1', 'J2', 'J3'], default='B3', alias='field', radio=True)
 
+
+
+class ProfilePlot(object):
+    def __init__(self, figure):
+        from matplotlib import lines
+        from matplotlib import axes
+
+        self.ax1 = axes.Axes(figure, [0.1, 0.1, 0.8, 0.8])
+        self.B1 = lines.Line2D([], [])
+        self.ax1.add_line(self.B1)
+
+        self.chkpt = None
+        self.field = 'B3'
+        
+        self.configure()
+
+
+    def get_axes(self):
+        return [self.ax1]
+
+    
+    def reload_data(self, chkpt, field):
+        import h5py
+        import numpy as np
+
+        if chkpt is None or field is None:
+            return
+
+        which = dict(E='electric', B='magnetic', J='electric_current')[field[0]]
+
+        h5f = h5py.File(chkpt, 'r')
+        shape = h5f[which][field].shape
+        if len(shape) == 2:
+            x = np.linspace(0, 1, shape[0])
+            y = h5f[which][field][:,shape[1]/2]
+        h5f.close()
+
+        self.B1.set_data(x, y)
+        self.ax1.relim(visible_only=True)
+        self.ax1.autoscale_view()
+        self.chkpt = chkpt
+        self.field = field
+
+
+    def set_data_source(self, data_source):
+        """Heavier re-plot; may re-load data from the disk
+
+        """
+        rundir = data_source.get_rundir()
+        chkpt = data_source.get_checkpoint()
+        self.reload_data(chkpt, self.field)
+        
+
+    def configure(self, **configuration):
+        self.field = configuration.get('field', 'B3')
+        self.reload_data(self.chkpt, self.field)
+
+
+    def create_configuration(self, user_config):
+        user_config.add_choices("Field",
+                                ['E1', 'E2', 'E3',
+                                 'B1', 'B2', 'B3',
+                                 'J1', 'J2', 'J3'], default='B3', alias='field', radio=True)
 
 
 class PowerSpectrumPlot(object):

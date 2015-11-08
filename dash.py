@@ -239,6 +239,7 @@ class MainWindow(wx.Frame):
         self.plots = { }
         self.plots[      'TimeSeriesPlot'] = plots.      TimeSeriesPlot(figure)
         self.plots[     'SingleImagePlot'] = plots.     SingleImagePlot(figure)
+        self.plots[         'ProfilePlot'] = plots.         ProfilePlot(figure)
         self.plots[   'PowerSpectrumPlot'] = plots.   PowerSpectrumPlot(figure)
         self.plots[  'AlphaHistogramPlot'] = plots.  AlphaHistogramPlot(figure)
 
