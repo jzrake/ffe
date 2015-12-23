@@ -9,10 +9,12 @@
 struct ffe_sim;
 struct ffe_status;
 struct ffe_measure;
-
+struct nav_sim;
 
 
 typedef void (*InitialDataFunction)(struct ffe_sim *sim, double x[4], double E[4], double B[4]);
+typedef void (*InitialDataFuncFlow)(struct nav_sim *sim, double x[4], double u[4], double *w);
+
 
 enum FfeSimParameter {
   FFE_OHMS_LAW_VACUUM = 'v',
@@ -52,6 +54,35 @@ struct ffe_particle
   double B[4];
 } ;
 
+struct nav_sim
+{
+  /* used by physics algorithm */
+  cow_domain *domain;
+  cow_dfield *velocity[6];
+  cow_dfield *pressure[6];
+  cow_dfield *inertial;
+  cow_dfield *divinert;
+  double grid_spacing[4];
+  struct ffe_status status;
+  
+
+  /* set by problem type */
+  InitialDataFuncFlow initial_data;
+
+  
+  /* set by problem type and/or user */
+  int Ni, Nj, Nk;
+  double cfl_parameter; /* Courant number [0.0 - 0.25]*/
+  double eps_parameter; /* Kreiss-Oliger parameter [0 - 1] */
+  double time_between_checkpoints;
+  double time_final;
+  double abc_coefficients[3];
+  double perturbation;
+  int alpha_squared; /* wave-number (squared) of initial configuration */
+  char problem_name[1024];
+  char output_directory[1024];
+} ;
+
 
 struct ffe_sim
 {
@@ -65,10 +96,10 @@ struct ffe_sim
   struct ffe_particle *particles;
   cow_domain *particles_domain;
   cow_dfield *particles_dfield;
-
+  double grid_spacing[4];
+  
 
   /* set by problem type */
-  double grid_spacing[4];
   InitialDataFunction initial_data;
 
 
@@ -153,6 +184,16 @@ void initial_data_abc       (struct ffe_sim *sim, double x[4], double E[4], doub
 void initial_data_beltrami  (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_nle       (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_clayer    (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
+
+
+void nav_initial_data_wave(struct nav_sim *sim, double x[4], double u[4], double *w);
+void nav_initial_data_abc(struct nav_sim *sim, double x[4], double u[4], double *w);
+
+
+double eos_density_p(double p);
+double eos_cs2_d(double d);
+double eos_pressure_w(double w);
+double eos_enthalpy_d(double d);
 
 
 /*

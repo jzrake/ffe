@@ -10,6 +10,32 @@
 
 
 
+#define EOS_CONST 1.0
+
+double eos_density_p(double p)
+{
+  return sqrt(p / EOS_CONST);
+}
+
+double eos_cs2_d(double d)
+{
+  return 2 * EOS_CONST * d;
+}
+
+double eos_pressure_w(double w)
+{
+  return w * w / (4 * EOS_CONST);
+}
+
+double eos_enthalpy_d(double d)
+{
+  return 2 * EOS_CONST * d;
+}
+
+
+
+
+
 
 static void random_beltrami_field(double x[4], double B[4], int model, int k2, double h, int rank);
 static void random_beltrami_field_kk65641(double x[4], double B[4], int model, int k2, double h, int rank);
@@ -348,3 +374,61 @@ void random_beltrami_field_kk65641(double x[4], double B[4], int model, int k2, 
 
 #undef RAND
 }
+
+
+
+
+
+
+
+
+
+
+
+
+void nav_initial_data_wave(struct nav_sim *sim, double x[4], double u[4], double *w)
+{
+  double dw = 1e-6;
+  double w0 = 4.0;
+  double w1 = w0 + dw;
+  double p0 = eos_pressure_w(w0);
+  double p1 = eos_pressure_w(w1);
+  double d0 = eos_density_p(p0);
+  double d1 = eos_density_p(p1);
+  double cs = sqrt( eos_cs2_d(d0) );
+  double du = cs * (d1 - d0) / d0;
+  w[0] = dw * sin(4 * M_PI * x[1]) + w0;
+  u[1] = du * sin(4 * M_PI * x[1]);
+  u[2] = 0.0;
+  u[3] = 0.0;
+}
+
+
+void nav_initial_data_abc(struct nav_sim *sim, double x[4], double u[4], double *w)
+{
+  double a = sim->abc_coefficients[0];
+  double b = sim->abc_coefficients[1];
+  double c = sim->abc_coefficients[2];
+  double alpha = sqrt(sim->alpha_squared) * 2 * M_PI;
+  
+  u[1] = 0.0;
+  u[2] = 0.0;
+  u[3] = 0.0;
+
+  u[2] += a * cos(alpha * x[1]);
+  u[3] -= a * sin(alpha * x[1]);
+  u[1] += 0.0;
+
+  u[3] += b * cos(alpha * x[2]);
+  u[1] -= b * sin(alpha * x[2]);
+  u[2] += 0.0;
+
+  u[1] += c * cos(alpha * x[3]);
+  u[2] -= c * sin(alpha * x[3]);
+  u[3] += 0.0;
+
+  double q = 4.0;
+  w[0] = q - 0.5*DOT(u,u);
+}
+
+

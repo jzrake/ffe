@@ -2,8 +2,10 @@
 Makefile.in
 cow
 ffe
+nav
 
 *.o
 *.dat
 *.h5
 *.pyc
+

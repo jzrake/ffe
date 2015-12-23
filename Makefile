@@ -31,13 +31,16 @@ SRC = $(wildcard *.c)
 OBJ = $(SRC:.c=.o)
 
 
-default : ffe
+default : ffe nav
 
 
 %.o : %.c ffe.h $(COW_LIB)
 	$(CC) $(CFLAGS) $< -c $(HDF5_I) $(FFTW_I) $(RNPL_I)
 
-ffe : $(OBJ) $(COW_LIB)
+ffe : $(filter-out nav.o,$(OBJ)) $(COW_LIB)
+	$(CC) $(CFLAGS) $^ $(HDF5_L) $(FFTW_L) $(RNPL_L) $(CLIBS) -o $@
+
+nav : $(filter-out ffe.o,$(OBJ)) $(COW_LIB)
 	$(CC) $(CFLAGS) $^ $(HDF5_L) $(FFTW_L) $(RNPL_L) $(CLIBS) -o $@
 
 $(COW_LIB) : .FORCE
