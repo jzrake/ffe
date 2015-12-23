@@ -59,7 +59,7 @@ struct nav_sim
   /* used by physics algorithm */
   cow_domain *domain;
   cow_dfield *velocity[6];
-  cow_dfield *pressure[6];
+  cow_dfield *pressure;
   cow_dfield *inertial;
   cow_dfield *divinert;
   double grid_spacing[4];

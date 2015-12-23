@@ -23,7 +23,7 @@ void nav_sim_write_checkpoint(struct nav_sim *sim, const char *base_name)
   }
 
   cow_dfield_write(sim->velocity[0], chkpt_name);
-  cow_dfield_write(sim->pressure[0], chkpt_name);
+  cow_dfield_write(sim->pressure, chkpt_name);
 
   if (cow_domain_getcartrank(sim->domain) == 0) {
     //read_write_status(sim, chkpt_name, 'w');
@@ -75,13 +75,12 @@ void nav_sim_initial_data(struct nav_sim *sim)
     }
     else {
       //u[m+1] += sim->perturbation * sin(2 * M_PI * x[2]);
-      u[m+2] += sim->perturbation * cos(2 * M_PI * x[1]);
+      //u[m+2] += sim->perturbation * cos(2 * M_PI * x[1]);
       //u[m+3] += sim->perturbation * 0;
     }
   }
 
   cow_dfield_syncguard(sim->velocity[0]);
-  //cow_dfield_syncguard(sim->pressure[0]);
 }
 
 
@@ -116,23 +115,24 @@ void nav_sim_init(struct nav_sim *sim)
   cow_dfield_addmember(sim->divinert, "divz");
   cow_dfield_commit(sim->divinert);
   
+  sim->pressure = cow_dfield_new();
+  cow_dfield_setname(sim->pressure, "pressure");
+  cow_dfield_setdomain(sim->pressure, sim->domain);
+  cow_dfield_addmember(sim->pressure, "p");
+  cow_dfield_commit(sim->pressure);
+ 
+
   for (int n=0; n<6; ++n) {
     sim->velocity[n] = cow_dfield_new();
-    sim->pressure[n] = cow_dfield_new();
 
     cow_dfield_setname(sim->velocity[n], "velocity");
-    cow_dfield_setname(sim->pressure[n], "pressure");
-
     cow_dfield_setdomain(sim->velocity[n], sim->domain);
-    cow_dfield_setdomain(sim->pressure[n], sim->domain);
 
     cow_dfield_addmember(sim->velocity[n], "u1");
     cow_dfield_addmember(sim->velocity[n], "u2");
     cow_dfield_addmember(sim->velocity[n], "u3");
-    cow_dfield_addmember(sim->pressure[n], "p");
 
     cow_dfield_commit(sim->velocity[n]);
-    cow_dfield_commit(sim->pressure[n]);
   }
 
 }
@@ -143,9 +143,9 @@ void nav_sim_free(struct nav_sim *sim)
 {
   for (int n=0; n<6; ++n) {
     cow_dfield_del(sim->velocity[n]);
-    cow_dfield_del(sim->pressure[n]);
   }
   cow_dfield_del(sim->inertial);
+  cow_dfield_del(sim->pressure);
   cow_dfield_del(sim->divinert);
   cow_domain_del(sim->domain);
 }
@@ -186,13 +186,8 @@ void nav_sim_kreiss_oliger(struct nav_sim *sim)
   int si = cow_dfield_getstride(sim->velocity[0], 0);
   int sj = cow_dfield_getstride(sim->velocity[0], 1);
   int sk = cow_dfield_getstride(sim->velocity[0], 2);
-  /* int ti = cow_dfield_getstride(sim->pressure[0], 0); */
-  /* int tj = cow_dfield_getstride(sim->pressure[0], 1); */
-  /* int tk = cow_dfield_getstride(sim->pressure[0], 2); */
   double *u = cow_dfield_getdatabuffer(sim->velocity[0]);
-  //double *p = cow_dfield_getdatabuffer(sim->pressure[0]);
   double *du = cow_dfield_getdatabuffer(sim->velocity[1]);
-  //double *dp = cow_dfield_getdatabuffer(sim->pressure[1]);
 
   double KO_const = 0.0;
 
@@ -205,32 +200,24 @@ void nav_sim_kreiss_oliger(struct nav_sim *sim)
   FOR_ALL_INTERIOR(Ni, Nj, Nk) {
 
     int m = INDV(i,j,k);
-    //int n = INDS(i,j,k);
 
     for (int d=1; d<=3; ++d) {
       du[m+d] = KOV(u,d);
     }
-
-    //dp[n] = KOS(p);
   }
 
   FOR_ALL_INTERIOR(Ni, Nj, Nk) {
 
     int m = INDV(i,j,k);
-    //int n = INDS(i,j,k);
 
     double eps = sim->eps_parameter;
 
     for (int d=1; d<=3; ++d) {
       u[m+d] -= eps * KO_const * du[m+d];
     }
-
-    //p[n] -= eps * KO_const * dp[n];
   }
 
-
   cow_dfield_syncguard(sim->velocity[0]);
-  //cow_dfield_syncguard(sim->pressure[0]);
 }
 
 
@@ -250,13 +237,13 @@ void nav_sim_advance_rk(struct nav_sim *sim, int RKstep)
   int si = cow_dfield_getstride(sim->velocity[0], 0);
   int sj = cow_dfield_getstride(sim->velocity[0], 1);
   int sk = cow_dfield_getstride(sim->velocity[0], 2);
-  int ti = cow_dfield_getstride(sim->pressure[0], 0);
-  int tj = cow_dfield_getstride(sim->pressure[0], 1);
-  int tk = cow_dfield_getstride(sim->pressure[0], 2);
+  int ti = cow_dfield_getstride(sim->pressure, 0);
+  int tj = cow_dfield_getstride(sim->pressure, 1);
+  int tk = cow_dfield_getstride(sim->pressure, 2);
 
   double *u0 = cow_dfield_getdatabuffer(sim->velocity[0]);
   double *u  = cow_dfield_getdatabuffer(sim->velocity[1]);
-  double *p  = cow_dfield_getdatabuffer(sim->pressure[0]);
+  double *p  = cow_dfield_getdatabuffer(sim->pressure);
   double *z  = cow_dfield_getdatabuffer(sim->inertial);
   double *g  = cow_dfield_getdatabuffer(sim->divinert);
   
@@ -320,7 +307,7 @@ void nav_sim_advance_rk(struct nav_sim *sim, int RKstep)
     g[n] = -divz; 
   }
   cow_dfield_syncguard(sim->divinert);
-  cow_fft_solvepoisson(sim->divinert, sim->pressure[0]);
+  cow_fft_solvepoisson(sim->divinert, sim->pressure);
   
   
   /* ===========================================================================
@@ -356,21 +343,13 @@ void nav_sim_average_rk(struct nav_sim *sim)
   int si = cow_dfield_getstride(sim->velocity[0], 0);
   int sj = cow_dfield_getstride(sim->velocity[0], 1);
   int sk = cow_dfield_getstride(sim->velocity[0], 2);
-  /* int ti = cow_dfield_getstride(sim->pressure[0], 0); */
-  /* int tj = cow_dfield_getstride(sim->pressure[0], 1); */
-  /* int tk = cow_dfield_getstride(sim->pressure[0], 2); */
 
   double *u = cow_dfield_getdatabuffer(sim->velocity[0]);
-  //double *p = cow_dfield_getdatabuffer(sim->pressure[0]);
 
   double *dtu0 = cow_dfield_getdatabuffer(sim->velocity[2]);
-  //double *dtp0 = cow_dfield_getdatabuffer(sim->pressure[2]);
   double *dtu1 = cow_dfield_getdatabuffer(sim->velocity[3]);
-  //double *dtp1 = cow_dfield_getdatabuffer(sim->pressure[3]);
   double *dtu2 = cow_dfield_getdatabuffer(sim->velocity[4]);
-  //double *dtp2 = cow_dfield_getdatabuffer(sim->pressure[4]);
   double *dtu3 = cow_dfield_getdatabuffer(sim->velocity[5]);
-  //double *dtp3 = cow_dfield_getdatabuffer(sim->pressure[5]);
 
   double dt = sim->status.time_step;
 
@@ -382,18 +361,14 @@ void nav_sim_average_rk(struct nav_sim *sim)
   FOR_ALL_INTERIOR(Ni, Nj, Nk) {
 
     int m = INDV(i,j,k);
-    //int n = INDS(i,j,k);
 
     u[m+1] += dt/6 * (dtu0[m+1] + 2*dtu1[m+1] + 2*dtu2[m+1] + dtu3[m+1]);
     u[m+2] += dt/6 * (dtu0[m+2] + 2*dtu1[m+2] + 2*dtu2[m+2] + dtu3[m+2]);
     u[m+3] += dt/6 * (dtu0[m+3] + 2*dtu1[m+3] + 2*dtu2[m+3] + dtu3[m+3]);
-
-    //p[n] += dt/6 * (dtp0[n] + 2*dtp1[n] + 2*dtp2[n] + dtp3[n]);
   }
 
 
   cow_dfield_syncguard(sim->velocity[0]);
-  //cow_dfield_syncguard(sim->pressure[0]);
 }
 
 
@@ -580,19 +555,14 @@ int main(int argc, char **argv)
   /* 		      sim.io_disk_block_size * 1024); */
 
 
+  
   if (restarted_run) {
-
     cow_dfield_read(sim.velocity[0], argv[1]);
-    cow_dfield_read(sim.pressure[0], argv[1]);
-
   }
-
   else {
-
     sim.status.time_last_checkpoint = -sim.time_between_checkpoints;
     sim.status.checkpoint_number = -1;
     nav_sim_initial_data(&sim);
-
   }
 
 
