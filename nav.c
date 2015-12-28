@@ -237,15 +237,15 @@ void nav_sim_advance_rk(struct nav_sim *sim, int RKstep)
   int si = cow_dfield_getstride(sim->velocity[0], 0);
   int sj = cow_dfield_getstride(sim->velocity[0], 1);
   int sk = cow_dfield_getstride(sim->velocity[0], 2);
-  int ti = cow_dfield_getstride(sim->pressure, 0);
-  int tj = cow_dfield_getstride(sim->pressure, 1);
-  int tk = cow_dfield_getstride(sim->pressure, 2);
+  /* int ti = cow_dfield_getstride(sim->pressure, 0); */
+  /* int tj = cow_dfield_getstride(sim->pressure, 1); */
+  /* int tk = cow_dfield_getstride(sim->pressure, 2); */
 
   double *u0 = cow_dfield_getdatabuffer(sim->velocity[0]);
   double *u  = cow_dfield_getdatabuffer(sim->velocity[1]);
-  double *p  = cow_dfield_getdatabuffer(sim->pressure);
-  double *z  = cow_dfield_getdatabuffer(sim->inertial);
-  double *g  = cow_dfield_getdatabuffer(sim->divinert);
+  /* double *p  = cow_dfield_getdatabuffer(sim->pressure); */
+  /* double *z  = cow_dfield_getdatabuffer(sim->inertial); */
+  /* double *g  = cow_dfield_getdatabuffer(sim->divinert); */
   
   double *dtu = cow_dfield_getdatabuffer(sim->velocity[RKstep+2]);
 
@@ -274,40 +274,7 @@ void nav_sim_advance_rk(struct nav_sim *sim, int RKstep)
     u[m+3] = u0[m+3] + dt * RKparam * dtu[m+3];
   }
   cow_dfield_syncguard(sim->velocity[1]);
-
-
-  /* ===========================================================================
-   * Calculate the inertial term u.grad u
-   * ===========================================================================
-   */
-  FOR_ALL_INTERIOR(Ni, Nj, Nk) {
-
-    int m = INDV(i,j,k);
-
-    double Du1[4] = { 0, D1(u,1), D2(u,1), D3(u,1) };
-    double Du2[4] = { 0, D1(u,2), D2(u,2), D3(u,2) };
-    double Du3[4] = { 0, D1(u,3), D2(u,3), D3(u,3) };
-
-    z[m+1] = u[m+1]*Du1[1] + u[m+2]*Du1[2] + u[m+3]*Du1[3];
-    z[m+2] = u[m+1]*Du2[1] + u[m+2]*Du2[2] + u[m+3]*Du2[3];
-    z[m+3] = u[m+1]*Du3[1] + u[m+2]*Du3[2] + u[m+3]*Du3[3];
-  }
-  cow_dfield_syncguard(sim->inertial);
-
-  
-  /* ===========================================================================
-   * Determine del^2 p = -div( u.grad u ) and solve the pressure equation
-   * ===========================================================================
-   */
-  FOR_ALL_INTERIOR(Ni, Nj, Nk) {
-    int m = INDV(i,j,k);
-    int n = INDS(i,j,k);
-    
-    double divz = D1(z,1) + D2(z,2) + D3(z,3);
-    g[n] = -divz; 
-  }
-  cow_dfield_syncguard(sim->divinert);
-  cow_fft_solvepoisson(sim->divinert, sim->pressure);
+  cow_fft_helmholtzdecomp(sim->velocity[1], COW_PROJECT_OUT_DIV);
   
   
   /* ===========================================================================
@@ -317,14 +284,17 @@ void nav_sim_advance_rk(struct nav_sim *sim, int RKstep)
    */
   FOR_ALL_INTERIOR(Ni, Nj, Nk) {
     int m = INDV(i,j,k);
-    int n = INDS(i,j,k);
 
-    double Dp0[4] = { 0, S1(p), S2(p), S3(p) };
+    double Du1[4] = { 0, D1(u,1), D2(u,1), D3(u,1) };
+    double Du2[4] = { 0, D1(u,2), D2(u,2), D3(u,2) };
+    double Du3[4] = { 0, D1(u,3), D2(u,3), D3(u,3) };
 
-    dtu[m+1] = -z[m+1] - Dp0[1];
-    dtu[m+2] = -z[m+2] - Dp0[2];
-    dtu[m+3] = -z[m+3] - Dp0[3];
+    dtu[m+1] = -(u[m+1]*Du1[1] + u[m+2]*Du1[2] + u[m+3]*Du1[3]);
+    dtu[m+2] = -(u[m+1]*Du2[1] + u[m+2]*Du2[2] + u[m+3]*Du2[3]);
+    dtu[m+3] = -(u[m+1]*Du3[1] + u[m+2]*Du3[2] + u[m+3]*Du3[3]);
   }
+  //cow_dfield_syncguard(sim->velocity[RKstep+2]);
+  //cow_fft_helmholtzdecomp(sim->velocity[RKstep+2], COW_PROJECT_OUT_DIV);
 }
 
 
