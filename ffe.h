@@ -68,6 +68,7 @@ struct ffe_sim
 
 
   /* set by problem type */
+  double domain_size[4];
   double grid_spacing[4];
   InitialDataFunction initial_data;
 
@@ -104,12 +105,12 @@ struct ffe_sim
   int io_align_threshold; /* KB */
   int io_disk_block_size; /* KB */
 
-  
+
   /* Non-linear equilibrium options e.g. nle=3,128,1024 */
   int nle_order;
   int nle_num_bins;
   int nle_array_size;
-  
+
 
   /* tracer particles */
   int num_particles;
@@ -240,7 +241,7 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode);
 		       -20*(F)[+0*s] +		\
 		       +15*(F)[+1*s] +		\
 		       -6 *(F)[+2*s] +		\
-		        1 *(F)[+3*s]) / 1.0)
+			1 *(F)[+3*s]) / 1.0)
 
 
 #define CROSS(E,B) {0.0,				\

@@ -72,6 +72,9 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
   ADD_MEM(Ni, H5T_NATIVE_INT);
   ADD_MEM(Nj, H5T_NATIVE_INT);
   ADD_MEM(Nk, H5T_NATIVE_INT);
+  ADD_MEM(domain_size[1], H5T_NATIVE_DOUBLE);
+  ADD_MEM(domain_size[2], H5T_NATIVE_DOUBLE);
+  ADD_MEM(domain_size[3], H5T_NATIVE_DOUBLE);
   ADD_MEM(cfl_parameter, H5T_NATIVE_DOUBLE);
   ADD_MEM(eps_parameter, H5T_NATIVE_DOUBLE);
   ADD_MEM(ohms_law, H5T_C_S1);
@@ -101,7 +104,7 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
   ADD_MEM(nle_num_bins, H5T_NATIVE_INT);
   ADD_MEM(nle_array_size, H5T_NATIVE_INT);
   ADD_MEM(num_particles, H5T_NATIVE_INT);
-	  
+
   error = read_write_kernel(h5f, h5s, h5t, mode, "sim", sim);
 
   H5Tclose(h5t_string_1024);
@@ -133,7 +136,7 @@ int read_old_h5type(hid_t src_dset, hid_t dst_type, void *dst_data,
   int error = 0;
 
   H5Dread(src_dset, src_type, H5S_ALL, H5S_ALL, H5P_DEFAULT, src_data);
-      
+
 
   for (int n=0; n<dst_nmembers; ++n) {
 

@@ -133,9 +133,9 @@ void ffe_sim_init(struct ffe_sim *sim)
 
 
   sim->grid_spacing[0] = 0.0;
-  sim->grid_spacing[1] = 1.0 / sim->Ni;
-  sim->grid_spacing[2] = 1.0 / sim->Nj;
-  sim->grid_spacing[3] = 1.0 / sim->Nk;
+  sim->grid_spacing[1] = sim->domain_size[1] / sim->Ni;
+  sim->grid_spacing[2] = sim->domain_size[2] / sim->Nj;
+  sim->grid_spacing[3] = sim->domain_size[3] / sim->Nk;
 
 
 
@@ -257,7 +257,7 @@ void ffe_sim_free(struct ffe_sim *sim)
 
   cow_domain_del(sim->domain);
   ffe_nle_free(&sim->nle);
-  
+
   if (sim->particles_dfield) cow_dfield_del(sim->particles_dfield);
   if (sim->particles_domain) cow_domain_del(sim->particles_domain);
 }
@@ -342,9 +342,9 @@ void ffe_sim_initial_data(struct ffe_sim *sim)
     int n = INDS(i,j,k);
 
     double x[4] = {0,
-    		   cow_domain_positionatindex(sim->domain, 0, i),
-    		   cow_domain_positionatindex(sim->domain, 1, j),
-    		   cow_domain_positionatindex(sim->domain, 2, k)};
+		   cow_domain_positionatindex(sim->domain, 0, i),
+		   cow_domain_positionatindex(sim->domain, 1, j),
+		   cow_domain_positionatindex(sim->domain, 2, k)};
 
     sim->initial_data(sim, x, &E[m], &B[m]);
     P[n] = 0.0;
@@ -454,7 +454,7 @@ void ffe_sim_advance_rk(struct ffe_sim *sim, int RKstep)
     int n = INDS(i,j,k);
 
     double divE = D1(E,1) + D2(E,2) + D3(E,3);
-    double divB = D1(B,1) + D2(B,2) + D3(B,3);    
+    double divB = D1(B,1) + D2(B,2) + D3(B,3);
     double rotE[4] = {0, D2(E,3) - D3(E,2), D3(E,1) - D1(E,3), D1(E,2) - D2(E,1)};
     double rotB[4] = {0, D2(B,3) - D3(B,2), D3(B,1) - D1(B,3), D1(B,2) - D2(B,1)};
 
@@ -806,7 +806,7 @@ int main(int argc, char **argv)
   strcpy(sim.problem_name, "");
   strcpy(sim.write_derived_fields, "J");
   ffe_nle_null(&sim.nle);
-  
+
   measure.time_simulation = 0.0;
   measure.electric_energy = 0.0; /* just to ensure memory is initialized */
   measure.magnetic_energy = 0.0;
@@ -816,6 +816,9 @@ int main(int argc, char **argv)
   sim.Ni = 128;
   sim.Nj = 128;
   sim.Nk = 1;
+  sim.domain_size[1] = 1.0;
+  sim.domain_size[2] = 1.0;
+  sim.domain_size[3] = 1.0;
   sim.ohms_law = FFE_OHMS_LAW_FORCE_FREE;
   sim.time_final = 1.0;
   sim.time_between_checkpoints = 1.0;
@@ -873,7 +876,7 @@ int main(int argc, char **argv)
    */
 
   if (strstr(argv[1], ".h5") != 0) {
-   
+
     norun_main += read_write_sim(&sim, argv[1], 'r');
     norun_main += read_write_status(&sim, argv[1], 'r');
 
@@ -912,6 +915,16 @@ int main(int argc, char **argv)
     }
     else if (!strncmp(argv[n], "N=", 2)) {
       int num = sscanf(argv[n], "N=%d,%d,%d", &sim.Ni, &sim.Nj, &sim.Nk);
+      if (num != 3) {
+	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
+	norun_main += 1;
+      }
+    }
+    else if (!strncmp(argv[n], "L=", 2)) {
+      int num = sscanf(argv[n], "L=%lf,%lf,%lf",
+		       &sim.domain_size[1],
+		       &sim.domain_size[2],
+		       &sim.domain_size[3]);
       if (num != 3) {
 	printf("[ffe] error: badly formatted option '%s'\n", argv[n]);
 	norun_main += 1;
@@ -1004,6 +1017,10 @@ int main(int argc, char **argv)
 
   printf("\n-----------------------------------------\n");
   printf("resolution ................. %d %d %d\n", sim.Ni, sim.Nj, sim.Nk);
+  printf("domain_size ................ %3.2lf %3.2lf %3.2lf\n",
+	 sim.domain_size[1],
+	 sim.domain_size[2],
+	 sim.domain_size[3]);
   printf("cfl_parameter .............. %12.10lf\n", sim.cfl_parameter);
   printf("eps_parameter .............. %12.10lf\n", sim.eps_parameter);
   printf("time_between_checkpoints ... %12.10lf\n", sim.time_between_checkpoints);
@@ -1111,7 +1128,7 @@ int main(int argc, char **argv)
       logf = fopen(logfile_name, "w");
     }
 
-    
+
     if (logf == NULL) {
       printf("[ffe] error: could not open log file '%s'\n", logfile_name);
       norun_main += 1;
@@ -1124,14 +1141,14 @@ int main(int argc, char **argv)
 
 
   /* Propagate any errors to all procs */
-  norun_main += cow_domain_intsum(sim.domain, norun_main);  
+  norun_main += cow_domain_intsum(sim.domain, norun_main);
 
   if (norun_main) {
     sim.time_final = 0.0;
   }
 
 
-  
+
   while (sim.status.time_simulation < sim.time_final) {
 
 
@@ -1208,4 +1225,3 @@ int main(int argc, char **argv)
   cow_finalize();
   return 0;
 }
-
