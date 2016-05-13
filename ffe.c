@@ -346,17 +346,21 @@ void ffe_sim_initial_data(struct ffe_sim *sim)
 		   cow_domain_positionatindex(sim->domain, 1, j),
 		   cow_domain_positionatindex(sim->domain, 2, k)};
 
+    x[1] *= sim->domain_size[1];
+    x[2] *= sim->domain_size[2];
+    x[3] *= sim->domain_size[3];
+
     sim->initial_data(sim, x, &E[m], &B[m]);
     P[n] = 0.0;
 
-    /* We add a white-noise perturbation to the magnetic field if pert < 0.0 */
+    /* We add a white-noise perturbation to the electric field if pert < 0.0 */
     if (sim->perturbation < 0.0) {
-      double dB1 = jsw_random_double(&R, -1.0, 1.0);
-      double dB2 = jsw_random_double(&R, -1.0, 1.0);
-      double dB3 = jsw_random_double(&R, -1.0, 1.0);
-      E[m+1] += dB1 * sim->perturbation;
-      E[m+2] += dB2 * sim->perturbation;
-      E[m+3] += dB3 * sim->perturbation;
+      double dE1 = jsw_random_double(&R, -1.0, 1.0);
+      double dE2 = jsw_random_double(&R, -1.0, 1.0);
+      double dE3 = jsw_random_double(&R, -1.0, 1.0);
+      E[m+1] += dE1 * sim->perturbation;
+      E[m+2] += dE2 * sim->perturbation;
+      E[m+3] += dE3 * sim->perturbation;
     }
   }
 

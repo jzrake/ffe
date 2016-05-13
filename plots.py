@@ -1,5 +1,3 @@
-
-
 import os
 
 
@@ -138,8 +136,8 @@ class SingleImagePlot(object):
 
     def get_axes(self):
         return [self.ax1]
-    
-    
+
+
     def reload_data(self, chkpt, field):
         import h5py
         import numpy as np
@@ -153,12 +151,14 @@ class SingleImagePlot(object):
                 data = h5f[which][field][:,:].T
             else:
                 data = h5f[which][field][:,:,0].T
+            Li = h5f['sim']['domain_size[1]'][0]
+            Lj = h5f['sim']['domain_size[2]'][0]
             h5f.close()
         self.image.set_data(data)
+        self.image.set_extent([0, Li, 0, Lj])
         if not self.fix_clim:
             self.image.set_clim(data.min(), data.max())
-        self.ax1.set_xlim(0, data.shape[1]-1)
-        self.ax1.set_ylim(0, data.shape[0]-1)
+        self.ax1.set_aspect('equal')
         self.chkpt = chkpt
         self.field = field
 
@@ -204,14 +204,14 @@ class ProfilePlot(object):
 
         self.chkpt = None
         self.field = 'B3'
-        
+
         self.configure()
 
 
     def get_axes(self):
         return [self.ax1]
 
-    
+
     def reload_data(self, chkpt, field):
         import h5py
         import numpy as np
@@ -242,7 +242,7 @@ class ProfilePlot(object):
         rundir = data_source.get_rundir()
         chkpt = data_source.get_checkpoint()
         self.reload_data(chkpt, self.field)
-        
+
 
     def configure(self, **configuration):
         self.field = configuration.get('field', 'B3')
@@ -278,7 +278,7 @@ class PowerSpectrumPlot(object):
 
     def get_axes(self):
         return [self.ax1]
-    
+
 
     def set_data_source(self, data_source):
         import h5py
@@ -299,7 +299,7 @@ class PowerSpectrumPlot(object):
 
         h5f.close()
 
-        
+
     def configure(self, **configuration):
         pass
 
