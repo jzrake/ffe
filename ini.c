@@ -139,22 +139,38 @@ void initial_data_clayer(struct ffe_sim *sim, double x[4], double E[4], double B
 
 void initial_data_cyljet(struct ffe_sim *sim, double x[4], double E[4], double B[4])
 {
-  double R0 = 3.83170597021; /* zero of Bessel1 (where B-phi goes through zero) */
+  //double R0 = 3.83170597021; /* zero of Bessel1 (where B-phi goes through zero) */
+  double R0 = 7.01558667043;
   double X = (x[1] - 0.5) * R0 * 3;
   double Y = (x[2] - 0.5) * R0 * 3;
   double R = sqrt(X*X + Y*Y);
+  double vz = j1(R); /* track B-phi for convenience */
+  double gm = 1.0 / sqrt(1 - vz*vz);
   double Bz = j0(R);
-  double Bf = j1(R);
+  double Bf = j1(R) * gm;
+  double Er = vz * Bf;
+
   double Bx = -Y / R * Bf;
   double By =  X / R * Bf;
+  double Ex =  X / R * Er;
+  double Ey =  Y / R * Er;
+  double Ez = 0.0;
+
   if (R > R0) {
     Bx = 0;
     By = 0;
     Bz = j0(R0);
+    Ex = 0.0;
+    Ey = 0.0;
+    Ez = 0.0;
   }
+
   B[1] = Bx;
   B[2] = By;
   B[3] = Bz;
+  E[1] = Ex;
+  E[2] = Ey;
+  E[3] = Ez;
 }
 
 
