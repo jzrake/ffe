@@ -46,7 +46,7 @@ void initial_data_abc(struct ffe_sim *sim, double x[4], double E[4], double B[4]
   double c = sim->abc_coefficients[2];
   double h = sim->fractional_helicity;
   double alpha = sqrt(sim->alpha_squared) * 2 * M_PI;
-  
+
   E[1] = 0.0;
   E[2] = 0.0;
   E[3] = 0.0;
@@ -72,16 +72,16 @@ void initial_data_abc(struct ffe_sim *sim, double x[4], double E[4], double B[4]
   double gm = 1.0 / sqrt(1 - vz*vz);
 
   //if (fabs(vz) > 0.95) printf("%f\n", vz);
-  
+
   B[1] *= gm;
   B[2] *= gm;
-  
+
   E[1] = +vz * B[2];
   E[2] = -vz * B[1];
   E[3] = 0.0;
 
 
-  
+
   if (fabs(h) < 1e-12 && B[3] < 0.0) {
     B[3] *= -1;
   }
@@ -131,10 +131,30 @@ void initial_data_clayer(struct ffe_sim *sim, double x[4], double E[4], double B
     double t = x[1] - (2*n - 1) / (2*s);
     phi += 0.5 * M_PI * (1 + tanh(t/a));
   }
-  
+
   B[1] = 0.0;
   B[2] = cos(phi);
   B[3] = sin(phi);
+}
+
+void initial_data_cyljet(struct ffe_sim *sim, double x[4], double E[4], double B[4])
+{
+  double R0 = 3.83170597021; /* zero of Bessel1 (where B-phi goes through zero) */
+  double X = (x[1] - 0.5) * R0 * 3;
+  double Y = (x[2] - 0.5) * R0 * 3;
+  double R = sqrt(X*X + Y*Y);
+  double Bz = j0(R);
+  double Bf = j1(R);
+  double Bx = -Y / R * Bf;
+  double By =  X / R * Bf;
+  if (R > R0) {
+    Bx = 0;
+    By = 0;
+    Bz = j0(R0);
+  }
+  B[1] = Bx;
+  B[2] = By;
+  B[3] = Bz;
 }
 
 
@@ -171,20 +191,20 @@ void random_beltrami_field(double x[4], double B[4], int model, int k2, double h
     for (j=-k_cube*(rank >= 2); j<=k_cube*(rank >= 2); ++j) {
       for (k=-k_cube*(rank >= 3); k<=k_cube*(rank >= 3); ++k) {
 
-  	fourier_mode M;
+	fourier_mode M;
 	double phase = RAND * M_PI;
 
 
-  	if (i*i + j*j + k*k != k2_sphere) {
-  	  continue;
-  	}
-  	else {
-  	  //printf("k[%d] = [%d %d %d] is on shell\n", num_modes, i, j, k);
+	if (i*i + j*j + k*k != k2_sphere) {
+	  continue;
+	}
+	else {
+	  //printf("k[%d] = [%d %d %d] is on shell\n", num_modes, i, j, k);
 
-  	  M.k[0] = 0.0;
-  	  M.k[1] = i;
-  	  M.k[2] = j;
-  	  M.k[3] = k;
+	  M.k[0] = 0.0;
+	  M.k[1] = i;
+	  M.k[2] = j;
+	  M.k[3] = k;
 
 
 	  double e0[4] = {0, RAND, RAND, RAND}; /* any vector not parallel to k */
@@ -196,13 +216,13 @@ void random_beltrami_field(double x[4], double B[4], int model, int k2, double h
 	  }
 
 	  M.A[0] = 0.0;
-	  for (d=1; d<=3; ++d) {	  
+	  for (d=1; d<=3; ++d) {
 	    M.A[d] = e1[d] * cexp(I * phase);
 	  }
 
-  	  num_modes += 1;
-  	  modes = (fourier_mode *) realloc(modes, num_modes * sizeof(fourier_mode));
-  	  modes[num_modes-1] = M;
+	  num_modes += 1;
+	  modes = (fourier_mode *) realloc(modes, num_modes * sizeof(fourier_mode));
+	  modes[num_modes-1] = M;
 
 
 	  /* reality condition */
@@ -210,9 +230,9 @@ void random_beltrami_field(double x[4], double B[4], int model, int k2, double h
 	    M.k[d] = -M.k[d];
 	    M.A[d] = conj(M.A[d]);
 	  }
-  	  num_modes += 1;
-  	  modes = (fourier_mode *) realloc(modes, num_modes * sizeof(fourier_mode));
-  	  modes[num_modes-1] = M;
+	  num_modes += 1;
+	  modes = (fourier_mode *) realloc(modes, num_modes * sizeof(fourier_mode));
+	  modes[num_modes-1] = M;
 	}
       }
     }
@@ -235,7 +255,7 @@ void random_beltrami_field(double x[4], double B[4], int model, int k2, double h
   free(modes);
 
   /* printf("im(A) = %+8.6e %+8.6e %+8.6e\n", */
-  /* 	 cimag(A[1]), cimag(A[2]), cimag(A[3])); */
+  /*	 cimag(A[1]), cimag(A[2]), cimag(A[3])); */
 
   B[1] = A[1];
   B[2] = A[2];
@@ -303,7 +323,7 @@ void random_beltrami_field_kk65641(double x[4], double B[4], int model, int k2, 
       }
 
       M.A[0] = 0.0;
-      for (d=1; d<=3; ++d) {	  
+      for (d=1; d<=3; ++d) {
 	M.A[d] = e1[d] * cexp(I * phase);
       }
 
@@ -340,7 +360,7 @@ void random_beltrami_field_kk65641(double x[4], double B[4], int model, int k2, 
   free(modes);
 
   /* printf("im(A) = %+8.6e %+8.6e %+8.6e\n", */
-  /* 	 cimag(A[1]), cimag(A[2]), cimag(A[3])); */
+  /*	 cimag(A[1]), cimag(A[2]), cimag(A[3])); */
 
   B[1] = A[1];
   B[2] = A[2];

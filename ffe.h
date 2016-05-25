@@ -154,7 +154,7 @@ void initial_data_abc       (struct ffe_sim *sim, double x[4], double E[4], doub
 void initial_data_beltrami  (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_nle       (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_clayer    (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
-
+void initial_data_cyljet    (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 
 /*
  * Serialization library

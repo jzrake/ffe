@@ -125,7 +125,8 @@ class DataSourcePanel(wx.Panel, HasListeners):
         self.listbox_ana.Clear()
 
         for thing in os.listdir(rundir):
-            if thing.startswith('chkpt.') and thing.endswith('.h5'):
+            if (thing.startswith('chkpt.') or
+                thing.startswith('lite.')) and thing.endswith('.h5'):
                 self.listbox_chk.Append(thing)
 
         try:
@@ -167,7 +168,7 @@ class DataSourcePanel(wx.Panel, HasListeners):
                 return None
             else:
                 return os.path.join(rundir, self.listbox_chk.GetString(n))
-            
+
 
     def get_analysis_group(self):
         rundir = self.get_rundir()
@@ -292,7 +293,7 @@ class MainWindow(wx.Frame):
 
 
     def switch_active_plot(self, plot_name):
-        
+
         plot = self.plots[plot_name]
         plot.set_data_source(self.panel.data_source)
 

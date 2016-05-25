@@ -306,6 +306,10 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
     //sim->alpha_squared = 16384;
     return 0;
   }
+  else if (!strcmp(problem_name, "cyljet")) {
+    sim->initial_data = initial_data_cyljet;
+    return 0;
+  }
   else {
     return 1;
   }

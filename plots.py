@@ -144,6 +144,8 @@ class SingleImagePlot(object):
         if chkpt == self.chkpt and field == self.field: return
         if chkpt is None or field is None:
             data = np.array([[0,0], [0,0]])
+            Li = 1
+            Lj = 1
         else:
             which = dict(E='electric', B='magnetic', J='electric_current')[field[0]]
             h5f = h5py.File(chkpt, 'r')
@@ -151,8 +153,14 @@ class SingleImagePlot(object):
                 data = h5f[which][field][:,:].T
             else:
                 data = h5f[which][field][:,:,0].T
-            Li = h5f['sim']['domain_size[1]'][0]
-            Lj = h5f['sim']['domain_size[2]'][0]
+
+            try:
+                Li = h5f['sim']['domain_size[1]'][0]
+                Lj = h5f['sim']['domain_size[2]'][0]
+            except KeyError:
+                Li = data.shape[1]
+                Lj = data.shape[0]
+
             h5f.close()
         self.image.set_data(data)
         self.image.set_extent([0, Li, 0, Lj])
