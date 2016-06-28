@@ -231,9 +231,13 @@ class ProfilePlot(object):
 
         h5f = h5py.File(chkpt, 'r')
         shape = h5f[which][field].shape
-        if len(shape) == 2:
+        if len(shape) == 1:
+            x = np.linspace(0, 1, shape[0])
+            y = h5f[which][field][:]
+        elif len(shape) == 2:
             x = np.linspace(0, 1, shape[0])
             y = h5f[which][field][:,shape[1]/2]
+
         h5f.close()
 
         self.B1.set_data(x, y)

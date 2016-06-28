@@ -19,24 +19,29 @@ static void random_beltrami_field_kk65641(double x[4], double B[4], int model, i
 
 void initial_data_emwave(struct ffe_sim *sim, double x[4], double E[4], double B[4])
 {
-  E[1] = sin(2 * M_PI * x[3]);
-  E[2] = 0.0;
+  E[1] = 0.0;
+  E[2] = sin(2 * M_PI * x[1]);
   E[3] = 0.0;
 
   B[1] = 0.0;
-  B[2] = sin(2 * M_PI * x[3]);
-  B[3] = 0.0;
+  B[2] = 0.0;
+  B[3] = sin(2 * M_PI * x[1]);
 }
 
 void initial_data_alfvenwave(struct ffe_sim *sim, double x[4], double E[4], double B[4])
 {
+  double dB = sim->perturbation;
+
   E[1] = 0.0;
   E[2] = 0.0;
-  E[3] = 0.0;
+  E[3] = dB * sin(2 * M_PI * x[1]);
 
-  B[1] = 0.0;
-  B[2] = 0.1 * sin(2 * M_PI * x[3]);
-  B[3] = 1.0;
+  B[1] = 1.0;
+  B[2] = dB * sin(2 * M_PI * x[1]);
+  B[3] = 0.0;
+
+  E[3] += dB * sin(4 * M_PI * x[1]);
+  B[2] += dB * sin(4 * M_PI * x[1]);
 }
 
 void initial_data_abc(struct ffe_sim *sim, double x[4], double E[4], double B[4])
@@ -108,17 +113,29 @@ void initial_data_beltrami(struct ffe_sim *sim, double x[4], double E[4], double
 
 void initial_data_nle(struct ffe_sim *sim, double x[4], double E[4], double B[4])
 {
-  E[1] = 0.0;
-  E[2] = 0.0;
-  E[3] = 0.0;
+  /* E[1] = 0.0; */
+  /* E[2] = 0.0; */
+  /* E[3] = 0.0; */
 
-  ffe_nle_sample(&sim->nle, x[1], x[2], B);
+  /* ffe_nle_sample(&sim->nle, x[1], x[2], B); */
 
-  if (sim->perturbation > 0.0) {
-    E[1] = 0.0;
-    E[2] = sin(4 * M_PI * (x[1] + x[2] + x[3])) * sim->perturbation;
-    E[3] = cos(4 * M_PI * (x[1] + x[2] + x[3])) * sim->perturbation;
-  }
+  /* if (sim->perturbation > 0.0) { */
+  /*   E[1] = 0.0; */
+  /*   E[2] = sin(4 * M_PI * (x[1] + x[2] + x[3])) * sim->perturbation; */
+  /*   E[3] = cos(4 * M_PI * (x[1] + x[2] + x[3])) * sim->perturbation; */
+  /* } */
+
+  double a = sqrt(sim->alpha_squared);
+  double f = sim->abc_coefficients[0];
+  double X = (x[1] - 0.5) * a;
+  double Y = (x[2] - 0.5) * a;
+  double R2 = X*X + Y*Y;
+  double Bf = sqrt(f * R2) * exp(-0.5 * R2);
+  double Bz = sqrt(1 + f * exp(-R2) * (1 - R2));
+
+  B[1] = -Bf * Y / sqrt(R2);
+  B[2] =  Bf * X / sqrt(R2);
+  B[3] =  Bz;
 }
 
 void initial_data_clayer(struct ffe_sim *sim, double x[4], double E[4], double B[4])
