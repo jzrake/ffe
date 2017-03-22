@@ -16,7 +16,7 @@ static int read_write_kernel(hid_t h5f, hid_t h5s, hid_t h5t,
 
 
 
-int read_write_status(struct ffe_sim *sim, const char *chkpt_name, char mode)
+int ffe_read_write_status(struct ffe_sim *sim, const char *chkpt_name, char mode)
 {
   int error = 1;
 
@@ -52,7 +52,7 @@ int read_write_status(struct ffe_sim *sim, const char *chkpt_name, char mode)
 
 
 
-int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
+int ffe_read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
 {
   int error = 1;
 
@@ -115,6 +115,80 @@ int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode)
   return error;
 }
 
+
+
+
+
+
+
+int nav_read_write_status(struct nav_sim *sim, const char *chkpt_name, char mode)
+{
+  int error = 1;
+
+#if (COW_HDF5)
+#define ADD_MEM(nm, tp) H5Tinsert(h5t, #nm, HOFFSET(struct ffe_status, nm), tp)
+
+  if (!H5Fis_hdf5(chkpt_name)) {
+    printf("[ser] error: checkpoint '%s' does not exist\n", chkpt_name);
+    return 1;
+  }
+
+  hid_t h5f = H5Fopen(chkpt_name, H5F_ACC_RDWR, H5P_DEFAULT);
+  hid_t h5s = H5Screate(H5S_SCALAR);
+  hid_t h5t = H5Tcreate(H5T_COMPOUND, sizeof(struct ffe_status));
+
+  ADD_MEM(iteration, H5T_NATIVE_INT);
+  ADD_MEM(checkpoint_number, H5T_NATIVE_INT);
+  ADD_MEM(time_simulation, H5T_NATIVE_DOUBLE);
+  ADD_MEM(time_step, H5T_NATIVE_DOUBLE);
+  ADD_MEM(time_last_checkpoint, H5T_NATIVE_DOUBLE);
+  ADD_MEM(kzps, H5T_NATIVE_DOUBLE);
+
+  error = read_write_kernel(h5f, h5s, h5t, mode, "status", &sim->status);
+
+  H5Tclose(h5t);
+  H5Sclose(h5s);
+  H5Fclose(h5f);
+
+#undef ADD_MEM
+#endif
+  return error;
+}
+
+
+int nav_read_write_sim(struct nav_sim *sim, const char *chkpt_name, char mode)
+{
+  int error = 1;
+
+#if (COW_HDF5)
+#define ADD_MEM(nm, tp) H5Tinsert(h5t, #nm, HOFFSET(struct nav_sim, nm), tp)
+
+  if (!H5Fis_hdf5(chkpt_name)) {
+    printf("[ser] error: checkpoint '%s' does not exist\n", chkpt_name);
+    return 1;
+  }
+
+  hid_t h5t_string_1024 = H5Tcopy(H5T_C_S1); H5Tset_size(h5t_string_1024, 1024);
+  hid_t h5f = H5Fopen(chkpt_name, H5F_ACC_RDWR, H5P_DEFAULT);
+  hid_t h5s = H5Screate(H5S_SCALAR);
+  hid_t h5t = H5Tcreate(H5T_COMPOUND, sizeof(struct nav_sim));
+
+  ADD_MEM(Ni, H5T_NATIVE_INT);
+  ADD_MEM(Nj, H5T_NATIVE_INT);
+  ADD_MEM(Nk, H5T_NATIVE_INT);
+	  
+  error = read_write_kernel(h5f, h5s, h5t, mode, "sim", sim);
+
+  H5Tclose(h5t_string_1024);
+  H5Tclose(h5t);
+  H5Sclose(h5s);
+  H5Fclose(h5f);
+
+#undef ADD_MEM
+#endif
+
+  return error;
+}
 
 
 

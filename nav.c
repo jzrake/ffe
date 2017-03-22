@@ -389,7 +389,7 @@ int main(int argc, char **argv)
   sim.Nk = 1;
   sim.time_final = 1.0;
   sim.time_between_checkpoints = 1.0;
-  sim.cfl_parameter = 0.10;
+  sim.cfl_parameter = 0.20;
   sim.eps_parameter = 0.50; /* [0-1] */
   sim.perturbation = 0.0;
   sim.alpha_squared = 1.0;

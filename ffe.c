@@ -272,9 +272,10 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
   if (problem_name == NULL) {
     printf("1. emwave\n");
     printf("2. alfvenwave\n");
-    printf("3. abc\n");
-    printf("4. beltrami\n");
-    printf("5. clayer\n");
+    printf("3. multiwave\n");
+    printf("4. abc\n");
+    printf("5. beltrami\n");
+    printf("6. clayer\n");
     return 0;
   }
   else if (!strcmp(problem_name, "emwave")) {
@@ -283,6 +284,10 @@ int ffe_sim_problem_setup(struct ffe_sim *sim, const char *problem_name)
   }
   else if (!strcmp(problem_name, "alfvenwave")) {
     sim->initial_data = initial_data_alfvenwave;
+    return 0;
+  }
+  else if (!strcmp(problem_name, "multiwave")) {
+    sim->initial_data = initial_data_multiwave;
     return 0;
   }
   else if (!strcmp(problem_name, "abc")) {
@@ -751,8 +756,8 @@ void ffe_sim_write_checkpoint(struct ffe_sim *sim, const char *base_name)
   }
 
   if (cow_domain_getcartrank(sim->domain) == 0) {
-    read_write_status(sim, chkpt_name, 'w');
-    read_write_sim(sim, chkpt_name, 'w');
+    ffe_read_write_status(sim, chkpt_name, 'w');
+    ffe_read_write_sim(sim, chkpt_name, 'w');
   }
 }
 
@@ -874,8 +879,8 @@ int main(int argc, char **argv)
 
   if (strstr(argv[1], ".h5") != 0) {
    
-    norun_main += read_write_sim(&sim, argv[1], 'r');
-    norun_main += read_write_status(&sim, argv[1], 'r');
+    norun_main += ffe_read_write_sim(&sim, argv[1], 'r');
+    norun_main += ffe_read_write_status(&sim, argv[1], 'r');
 
     if (norun_main == 0) {
       restarted_run = 1;

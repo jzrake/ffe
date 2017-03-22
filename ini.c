@@ -65,6 +65,30 @@ void initial_data_alfvenwave(struct ffe_sim *sim, double x[4], double E[4], doub
   B[3] = 1.0;
 }
 
+void initial_data_multiwave(struct ffe_sim *sim, double x[4], double E[4], double B[4])
+{
+  double b1x = sim->perturbation;
+  double b2x = sim->perturbation;
+
+  double B0[4] = {0, 0, 0, 1 };
+  double zh[4] = {0, 0, 0, 1 };
+  double k1[4] = {0, 0, 1, 2 };
+  double k2[4] = {0, 0, 3,-2 };
+
+  double b1[4] = {0, b1x * cexp (2 * M_PI * I * DOT (k1, x)), 0, 0 };
+  double b2[4] = {0, b2x * cexp (2 * M_PI * I * DOT (k2, x)), 0, 0 };
+
+  double e1[4] = CROSS (b1, zh);
+  double e2[4] = CROSS (b2, zh);
+
+  E[1] = e1[1] + e2[1];
+  E[2] = e1[2] + e2[2];
+  E[3] = e1[3] + e2[3];
+  B[1] = b1[1] + b2[1] + B0[1];
+  B[2] = b1[2] + b2[2] + B0[2];
+  B[3] = b1[3] + b2[3] + B0[3];
+}
+
 void initial_data_abc(struct ffe_sim *sim, double x[4], double E[4], double B[4])
 {
   double a = sim->abc_coefficients[0];

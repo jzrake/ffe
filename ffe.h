@@ -12,6 +12,7 @@ struct ffe_measure;
 struct nav_sim;
 
 
+
 typedef void (*InitialDataFunction)(struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 typedef void (*InitialDataFuncFlow)(struct nav_sim *sim, double x[4], double u[4], double *w);
 
@@ -180,6 +181,7 @@ void ffe_perf(struct ffe_sim *sim);
  */
 void initial_data_emwave    (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_alfvenwave(struct ffe_sim *sim, double x[4], double E[4], double B[4]);
+void initial_data_multiwave (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_abc       (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_beltrami  (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
 void initial_data_nle       (struct ffe_sim *sim, double x[4], double E[4], double B[4]);
@@ -200,8 +202,11 @@ double eos_enthalpy_d(double d);
  * Serialization library
  * =====================================================================
  */
-int read_write_status(struct ffe_sim *sim, const char *chkpt_name, char mode);
-int read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode);
+int ffe_read_write_status(struct ffe_sim *sim, const char *chkpt_name, char mode);
+int ffe_read_write_sim(struct ffe_sim *sim, const char *chkpt_name, char mode);
+
+int nav_read_write_status(struct nav_sim *sim, const char *chkpt_name, char mode);
+int nav_read_write_sim(struct nav_sim *sim, const char *chkpt_name, char mode);
 
 
 #define FFE_NG 3 /* number of guard zones */
