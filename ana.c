@@ -191,7 +191,7 @@ void ffe_sim_analyze(struct ffe_sim *sim, struct ffe_measure *meas, char *filena
 
   cow_fft_pspecvecfield(magnetic, Pb);
   cow_fft_pspecvecfield(electric, Pe);
-  cow_fft_helicityspec(magnetic, Hr);
+  cow_fft_helicityspec(magnetic, Hr, 'b');
 
   long long Nt = cow_domain_getnumglobalzones(sim->domain, COW_ALL_DIMS);
   int Ni = cow_domain_getnumlocalzonesinterior(sim->domain, 0);
